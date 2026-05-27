@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Organic Touch Sounds</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0d0221;
+    overflow: hidden;
+    font-family: 'Georgia', 'Times New Roman', serif;
+    cursor: default;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  #overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 10;
+    opacity: 1;
+    transition: opacity 4s ease;
+  }
+
+  #overlay.hidden {
+    opacity: 0;
+  }
+
+  #overlay h1 {
+    font-size: clamp(2rem, 6vw, 5rem);
+    font-weight: 300;
+    color: #f0e6ff;
+    text-shadow: 0 0 40px rgba(192, 132, 252, 0.4), 0 0 80px rgba(103, 232, 249, 0.2);
+    letter-spacing: 0.15em;
+    margin-bottom: 0.6em;
+  }
+
+  #overlay p {
+    font-size: clamp(0.9rem, 1.5vw, 1.3rem);
+    color: rgba(240, 230, 255, 0.6);
+    letter-spacing: 0.2em;
+    font-style: italic;
+    animation: breathe 4s ease-in-out infinite;
+  }
+
+  @keyframes breathe {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 0.9; }
+  }
+
+  #info-btn {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    background: rgba(240, 230, 255, 0.08);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(240, 230, 255, 0.12);
+    color: rgba(240, 230, 255, 0.5);
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-family: 'Georgia', serif;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    pointer-events: all;
+    transition: all 0.5s ease;
+  }
+
+  #info-btn:hover {
+    background: rgba(240, 230, 255, 0.15);
+    color: rgba(240, 230, 255, 0.8);
+    border-color: rgba(240, 230, 255, 0.25);
+  }
+
+  /* Floating particles in CSS too for extra depth */
+  body::before, body::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+  }
+</style>
+</head>
+<body>
+  <div id="overlay">
+    <h1>Organic Touch Sounds</h1>
+    <p>toca las criaturas para escucharlas cantar</p>
+    <p style="font-size: clamp(0.7rem, 1.1vw, 0.95rem); opacity: 0.5; animation-delay: 2s;">puedes arrastrarlas unas sobre otras para escucharlas juntas</p>
+  </div>
+  <canvas id="canvas"></canvas>
+  <button id="info-btn">♫  toca las formas  ♫</button>
+
+<script>
+// =============================================================================
+// 1. AUDIO SYSTEM - Síntesis de sonido con Web Audio API
+// =============================================================================
+class AudioSystem {
+  constructor() {
+    this.ctx = null;
+    this.masterGain = null;
+    this.reverbNode = null;
+    this.delayNode = null;
+    this.initialized = false;
+  }
+
+  init() {
+    if (this.initialized) return;
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.value = 0.25;
+      this.masterGain.connect(this.ctx.destination);
+
+      // --- Reverb (impulso generado) ---
+      const sr = this.ctx.sampleRate;
+      const len = sr * 2.5; // 2.5 second reverb
+      const impulse = this.ctx.createBuffer(2, len, sr);
+      for (let ch = 0; ch < 2; ch++) {
+        const data = impulse.getChannelData(ch);
+        for (let i = 0; i < len; i++) {
+          const t = i / sr;
+          data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 1.8) * (1 - t / 2.5);
+        }
+      }
+      this.reverbNode = this.ctx.createConvolver();
+      this.reverbNode.buffer = impulse;
+      this.reverbNode.connect(this.masterGain);
+
+      // --- Feedback Delay ---
+      this.delayNode = this.ctx.createDelay(0.5);
+      this.delayNode.delayTime.value = 0.35;
+      const delayFeedback = this.ctx.createGain();
+      delayFeedback.gain.value = 0.15;
+      const delayFilter = this.ctx.createBiquadFilter();
+      delayFilter.type = 'lowpass';
+      delayFilter.frequency.value = 2000;
+      this.delayNode.connect(delayFeedback);
+      delayFeedback.connect(delayFilter);
+      delayFilter.connect(this.delayNode);
+      delayFilter.connect(this.masterGain);
+
+      this.initialized = true;
+    } catch (e) {
+      console.warn('Web Audio no disponible:', e);
+    }
+  }
+
+
+  // Escala pentatónica mayor (frecuencias exactas)
+  _pentatonicNote(index) {
+    const notes = [
+      261.63, 293.66, 329.63, 392.00, 440.00, // C4, D4, E4, G4, A4
+      523.25, 587.33, 659.25, 783.99, 880.00, // C5, D5, E5, G5, A5
+    ];
+    return notes[index % notes.length];
+  }
+
+  // Sonido según tipo de criatura
+  playCreatureSound(type, x, y) {
+    if (!this.initialized) this.init();
+    if (!this.ctx) return;
+
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+
+    // Parámetros según el tipo
+    let params;
+    switch (type) {
+      case 'circle':
+        params = {
+          oscTypes: ['sine'],
+          noteIndex: Math.floor(Math.random() * 3),     // low: C-D-E
+          freqMult: [1],
+          gain: 0.18,
+          attack: 0.15,
+          decay: 0.6,
+          detune: 0,
+        };
+        break;
+      case 'triangle':
+        params = {
+          oscTypes: ['triangle'],
+          noteIndex: 3 + Math.floor(Math.random() * 3), // mid: G-A-C
+          freqMult: [1],
+          gain: 0.12,
+          attack: 0.02,
+          decay: 0.8,
+          detune: 0,
+        };
+        break;
+      case 'square':
+        params = {
+          oscTypes: ['sine', 'sine'],
+          noteIndex: 2 + Math.floor(Math.random() * 3), // mid: E-G-A
+          freqMult: [1, 2.01],
+          gain: 0.10,
+          attack: 0.1,
+          decay: 0.7,
+          detune: 5,
+        };
+        break;
+      case 'hexagon':
+        params = {
+          oscTypes: ['sine', 'sine'],
+          noteIndex: 4 + Math.floor(Math.random() * 4), // mid-high: A-C-D-E
+          freqMult: [1, 4.02],
+          gain: 0.08,
+          attack: 0.005,
+          decay: 1.2,
+          detune: 0,
+        };
+        break;
+      case 'diamond':
+        params = {
+          oscTypes: ['sawtooth', 'sine'],
+          noteIndex: 1 + Math.floor(Math.random() * 4), // mid: D-E-G-A
+          freqMult: [1, 1.5],
+          gain: 0.07,
+          attack: 0.005,
+          decay: 0.5,
+          detune: 0,
+        };
+        break;
+      default:
+        params = {
+          oscTypes: ['sine'],
+          noteIndex: Math.floor(Math.random() * 7),
+          freqMult: [1],
+          gain: 0.1,
+          attack: 0.05,
+          decay: 0.5,
+          detune: 0,
+        };
+    }
+
+    const baseFreq = this._pentatonicNote(params.noteIndex);
+    const gainNode = ctx.createGain();
+    gainNode.gain.value = 0;
+
+    // Conectar a reverb + dry
+    const dryGain = ctx.createGain();
+    dryGain.gain.value = 0.6;
+    gainNode.connect(dryGain);
+    dryGain.connect(this.masterGain);
+
+    gainNode.connect(this.reverbNode);
+
+    // Envelope
+    gainNode.gain.setValueAtTime(0, now);
+    gainNode.gain.linearRampToValueAtTime(params.gain, now + params.attack);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, now + params.attack + params.decay);
+    gainNode.gain.setValueAtTime(0, now + params.attack + params.decay + 0.05);
+
+    for (let i = 0; i < params.oscTypes.length; i++) {
+      const osc = ctx.createOscillator();
+      osc.type = params.oscTypes[i];
+      osc.frequency.value = baseFreq * params.freqMult[i] + (i > 0 ? params.detune : 0);
+      osc.connect(gainNode);
+      osc.start(now);
+      osc.stop(now + params.attack + params.decay + 0.05);
+    }
+
+    // Low-pass filter for warmth
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 1000 + Math.random() * 2000;
+    filter.Q.value = 0.5;
+
+    // Reconectar a través del filtro si es diamond (sonido más suave)
+    if (type === 'diamond') {
+      // Para diamond, necesitamos rehacer con filtro
+      // Ya no podemos cambiar la conexión, así que añadimos un segundo sonido
+      this._playFilteredNote(ctx, baseFreq, params, now);
+    }
+  }
+
+  _playFilteredNote(ctx, baseFreq, params, now) {
+    const gainNode = ctx.createGain();
+    gainNode.gain.value = 0;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 600 + Math.random() * 800;
+    filter.Q.value = 0.8;
+
+    gainNode.connect(filter);
+    filter.connect(this.masterGain);
+
+    gainNode.gain.setValueAtTime(0, now);
+    gainNode.gain.linearRampToValueAtTime(params.gain * 0.8, now + 0.01);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, now + params.decay * 1.5);
+
+    for (let i = 0; i < params.oscTypes.length; i++) {
+      const osc = ctx.createOscillator();
+      osc.type = params.oscTypes[i];
+      osc.frequency.value = baseFreq * params.freqMult[i];
+      osc.connect(gainNode);
+      osc.start(now);
+      osc.stop(now + params.decay * 1.5 + 0.05);
+    }
+  }
+}
+
+// =============================================================================
+// 2. AMBIENT PARTICLES - Partículas flotantes de fondo
+// =============================================================================
+class AmbientParticle {
+  constructor(w, h) {
+    this.reset(w, h, true);
+  }
+
+  reset(w, h, initial = false) {
+    this.x = Math.random() * w;
+    this.y = Math.random() * h;
+    this.size = 1 + Math.random() * 2.5;
+    this.speedX = (Math.random() - 0.5) * 0.15;
+    this.speedY = (Math.random() - 0.5) * 0.15 - 0.05;
+    this.opacity = 0.2 + Math.random() * 0.4;
+    this.phase = Math.random() * Math.PI * 2;
+    this.freq = 0.005 + Math.random() * 0.01;
+    this.life = initial ? 1 : 0;
+    this.maxLife = 200 + Math.random() * 300;
+    this.age = 0;
+  }
+
+  update(w, h) {
+    this.age++;
+    this.x += this.speedX + Math.sin(this.phase + this.age * this.freq) * 0.1;
+    this.y += this.speedY + Math.cos(this.phase + this.age * this.freq * 0.7) * 0.1;
+    this.phase += 0.01;
+
+    this.life = this.age < 60 ? this.age / 60 : 1;
+    if (this.age > this.maxLife) this.life = Math.max(0, 1 - (this.age - this.maxLife) / 100);
+
+    if (this.life <= 0 || this.x < -20 || this.x > w + 20 || this.y < -20 || this.y > h + 20) {
+      this.reset(w, h);
+    }
+  }
+
+  draw(ctx) {
+    ctx.save();
+    ctx.globalAlpha = this.opacity * this.life;
+    ctx.fillStyle = '#c084fc';
+    ctx.shadowColor = '#c084fc';
+    ctx.shadowBlur = 6;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// =============================================================================
+// 3. SOUND WAVE - Onda expansiva cuando suena una criatura
+// =============================================================================
+class SoundWave {
+  constructor(x, y, color) {
+    this.x = x;
+    this.y = y;
+    this.color = color;
+    this.radius = 5;
+    this.maxRadius = 60 + Math.random() * 60;
+    this.opacity = 0.6;
+    this.life = 1;
+    this.speed = 1.5 + Math.random() * 1.0;
+  }
+
+  update() {
+    this.radius += this.speed;
+    this.life = 1 - (this.radius / this.maxRadius);
+    this.opacity = this.life * 0.5;
+    return this.life > 0;
+  }
+
+  draw(ctx) {
+    ctx.save();
+    ctx.globalAlpha = this.opacity;
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = this.color;
+    ctx.shadowBlur = 15;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Inner ring
+    ctx.globalAlpha = this.opacity * 0.3;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius * 0.6, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+// =============================================================================
+// 4. CREATURE - Criatura orgánica
+// =============================================================================
+const CREATURE_TYPES = ['circle', 'triangle', 'square', 'hexagon', 'diamond'];
+
+const TYPE_COLORS = {
+  circle:   { fill: '#ff7eb3', glow: '#ff3c82', wave: '#ff7eb3' },
+  triangle: { fill: '#7bf5cf', glow: '#3be0a8', wave: '#7bf5cf' },
+  square:   { fill: '#ffd93d', glow: '#f0b800', wave: '#ffd93d' },
+  hexagon:  { fill: '#c084fc', glow: '#9d4edd', wave: '#c084fc' },
+  diamond:  { fill: '#67e8f9', glow: '#22d3ee', wave: '#67e8f9' },
+};
+
+class Creature {
+  constructor(type, x, y, size) {
+    this.type = type;
+    this.x = x;
+    this.y = y;
+    this.targetSize = size;
+    this.size = size * 0.5; // starts small, grows in
+    this.rotation = Math.random() * Math.PI * 2;
+    this.rotSpeed = (Math.random() - 0.5) * 0.003;
+    this.vx = (Math.random() - 0.5) * 0.2;
+    this.vy = (Math.random() - 0.5) * 0.2;
+    this.maxSpeed = 0.3 + Math.random() * 0.4;
+
+    // Wander
+    this.wanderAngle = Math.random() * Math.PI * 2;
+    this.wanderRadius = 0.5;
+    this.wanderJitter = 0.04 + Math.random() * 0.03;
+
+    // Pulse (breathing)
+    this.pulsePhase = Math.random() * Math.PI * 2;
+    this.pulseSpeed = 0.012 + Math.random() * 0.008;
+    this.pulseAmount = 0.06 + Math.random() * 0.03;
+
+    // Float bobbing
+    this.bobPhase = Math.random() * Math.PI * 2;
+    this.bobSpeed = 0.015 + Math.random() * 0.01;
+
+    // Age / Spawn animation
+    this.age = 0;
+    this.spawnDuration = 120;
+
+    // Interaction
+    this.hovered = false;
+    this.clickAnimation = 0; // 0 = not animating, 1+ = animating
+    this.clickScale = 1;
+    this.lastClickTime = 0;
+
+    // Drag & drop
+    this.isDragging = false;
+    this.dragOffsetX = 0;
+    this.dragOffsetY = 0;
+    this.lastGroupSoundTime = 0;
+
+    // Visuals
+    this.colors = TYPE_COLORS[type];
+    this.hueShift = 0;
+
+    // Unique variation
+    this.colorVariation = 0.85 + Math.random() * 0.3;
+  }
+
+  update(w, h, mouseX, mouseY) {
+    if (this.isDragging) return;
+    this.age++;
+
+    // --- Spawn animation ---
+    const spawnProgress = Math.min(1, this.age / this.spawnDuration);
+    this.size = this.targetSize * (0.3 + 0.7 * spawnProgress * spawnProgress);
+
+    // --- Wander ---
+    this.wanderAngle += (Math.random() - 0.5) * this.wanderJitter;
+    const wanderX = Math.cos(this.wanderAngle) * this.wanderRadius;
+    const wanderY = Math.sin(this.wanderAngle) * this.wanderRadius;
+
+    // --- Edge avoidance ---
+    const margin = 120;
+    let edgePushX = 0, edgePushY = 0;
+    if (this.x < margin) edgePushX = 1 - this.x / margin;
+    if (this.x > w - margin) edgePushX = (w - this.x) / margin - 1;
+    if (this.y < margin) edgePushY = 1 - this.y / margin;
+    if (this.y > h - margin) edgePushY = (h - this.y) / margin - 1;
+
+    // Apply forces
+    this.vx += wanderX * 0.02 + edgePushX * 0.03;
+    this.vy += wanderY * 0.02 + edgePushY * 0.03;
+
+    // Damping
+    this.vx *= 0.98;
+    this.vy *= 0.98;
+
+    // Limit speed
+    const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+    if (speed > this.maxSpeed) {
+      this.vx = (this.vx / speed) * this.maxSpeed;
+      this.vy = (this.vy / speed) * this.maxSpeed;
+    }
+
+    // Bob
+    this.bobPhase += this.bobSpeed;
+    const bobY = Math.sin(this.bobPhase) * 0.2;
+    const bobX = Math.cos(this.bobPhase * 0.7) * 0.1;
+
+    this.x += this.vx + bobX;
+    this.y += this.vy + bobY;
+
+    // Bound softly
+    this.x = Math.max(margin * 0.3, Math.min(w - margin * 0.3, this.x));
+    this.y = Math.max(margin * 0.3, Math.min(h - margin * 0.3, this.y));
+
+    // Rotation
+    this.rotation += this.rotSpeed;
+
+    // Pulse
+    this.pulsePhase += this.pulseSpeed;
+
+    // Click animation
+    if (this.clickAnimation > 0) {
+      this.clickAnimation *= 0.92;
+      this.clickScale = 1 + Math.sin(this.clickAnimation * Math.PI * 3) * 0.15 * this.clickAnimation;
+      if (this.clickAnimation < 0.001) this.clickAnimation = 0;
+    }
+
+    // Hover detection
+    if (mouseX !== undefined && mouseY !== undefined) {
+      this.hovered = this.containsPoint(mouseX, mouseY);
+    } else {
+      this.hovered = false;
+    }
+  }
+
+  containsPoint(px, py) {
+    const dx = px - this.x;
+    const dy = py - this.y;
+    return (dx * dx + dy * dy) < (this.size * this.size * 1.5);
+  }
+
+  overlapsWith(other) {
+    const dx = this.x - other.x;
+    const dy = this.y - other.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const threshold = (this.currentSize + other.currentSize) * 0.85;
+    return dist < threshold;
+  }
+
+  dragStart(mx, my) {
+    this.isDragging = true;
+    this.dragOffsetX = mx - this.x;
+    this.dragOffsetY = my - this.y;
+    this.vx = 0;
+    this.vy = 0;
+  }
+
+  dragMove(mx, my, w, h) {
+    this.x = Math.max(30, Math.min(w - 30, mx - this.dragOffsetX));
+    this.y = Math.max(30, Math.min(h - 30, my - this.dragOffsetY));
+  }
+
+  dragEnd() {
+    this.isDragging = false;
+  }
+
+  onClick(audioSystem) {
+    this.clickAnimation = 1;
+    this.lastClickTime = performance.now();
+    audioSystem.playCreatureSound(this.type, this.x, this.y);
+  }
+
+  get currentSize() {
+    const pulse = 1 + Math.sin(this.pulsePhase) * this.pulseAmount;
+    return this.size * pulse * this.clickScale;
+  }
+
+  draw(ctx) {
+    const s = this.currentSize;
+    const alpha = Math.min(1, this.age / 40);
+    const time = performance.now() * 0.001;
+
+    // --- Organic blob parameters per type ---
+    const blobParams = {
+      circle:   { points: 7, wobble: 0.28, lobes: 3 },
+      triangle: { points: 6, wobble: 0.38, lobes: 2 },
+      square:   { points: 8, wobble: 0.32, lobes: 4 },
+      hexagon:  { points: 10, wobble: 0.22, lobes: 5 },
+      diamond:  { points: 6, wobble: 0.48, lobes: 2, stretch: 1.3 },
+    };
+    const bp = blobParams[this.type] || blobParams.circle;
+    const shapeSize = s * 0.8;
+
+    // --- Glow ---
+    ctx.save();
+    const glowSize = s * 2.5;
+    const glow = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, glowSize);
+    glow.addColorStop(0, this.colors.glow + '40');
+    glow.addColorStop(0.5, this.colors.glow + '15');
+    glow.addColorStop(1, this.colors.glow + '00');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, glowSize, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // --- Main organic blob ---
+    ctx.save();
+    ctx.shadowColor = this.colors.glow;
+    ctx.shadowBlur = this.hovered ? 30 : 15;
+    ctx.globalAlpha = alpha * (this.hovered ? 0.6 : 0.5);
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.rotation);
+
+    ctx.fillStyle = this.colors.fill;
+    ctx.strokeStyle = this.colors.glow;
+    ctx.lineWidth = 1.5;
+
+    const pts = this._generateBlobPoints(shapeSize, bp, time);
+    this._drawBlobPath(ctx, pts, bp.points);
+    ctx.fill();
+    ctx.stroke();
+
+    // Subtle inner veins for organic feel
+    ctx.globalAlpha = 0.06;
+    ctx.strokeStyle = this.colors.glow;
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i < bp.points; i++) {
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(pts[i].x * 0.7, pts[i].y * 0.7);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // --- Inner glow (highlight) ---
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.2;
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.rotation);
+
+    const innerPts = this._generateBlobPoints(shapeSize * 0.6, bp, time + 1.5);
+    const innerGrad = ctx.createRadialGradient(0, -shapeSize * 0.3, 0, 0, 0, shapeSize);
+    innerGrad.addColorStop(0, '#ffffff60');
+    innerGrad.addColorStop(1, '#ffffff00');
+    ctx.fillStyle = innerGrad;
+    this._drawBlobPath(ctx, innerPts, bp.points);
+    ctx.fill();
+    ctx.restore();
+
+    // --- Hover indicator (pulsing organic outline) ---
+    if (this.hovered) {
+      ctx.save();
+      ctx.globalAlpha = 0.3 + Math.sin(performance.now() * 0.003) * 0.1;
+      ctx.strokeStyle = this.colors.glow;
+      ctx.lineWidth = 1;
+      ctx.shadowColor = this.colors.glow;
+      ctx.shadowBlur = 20;
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.rotation);
+      const ringPts = this._generateBlobPoints(s * 1.1, { ...bp, wobble: bp.wobble * 0.5 }, time + 0.8);
+      this._drawBlobPath(ctx, ringPts, bp.points);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  _generateBlobPoints(radius, bp, time) {
+    const pts = [];
+    const uniquePhase = this.colorVariation * 10;
+    for (let i = 0; i < bp.points; i++) {
+      const angle = (i / bp.points) * Math.PI * 2;
+      let r = radius * (1 +
+        Math.sin(angle * bp.lobes + time * 0.5 + uniquePhase) * bp.wobble +
+        Math.cos(angle * 2 + time * 0.7 + this.pulsePhase * 0.5) * bp.wobble * 0.4 +
+        Math.sin(angle * 5 + time * 0.9 + 1.3) * bp.wobble * 0.25 +
+        Math.cos(angle * 3 + time * 0.3 + this.bobPhase) * bp.wobble * 0.2
+      );
+      // Stretch for elongated types (e.g. diamond) — elongates vertically
+      if (bp.stretch && bp.stretch !== 1.0) {
+        r *= (1 + (bp.stretch - 1) * Math.abs(Math.sin(angle)));
+      }
+      pts.push({
+        x: Math.cos(angle) * r,
+        y: Math.sin(angle) * r
+      });
+    }
+    return pts;
+  }
+
+  _drawBlobPath(ctx, pts, numPoints) {
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 0; i < numPoints; i++) {
+      const p0 = pts[i];
+      const p1 = pts[(i + 1) % numPoints];
+      const pp = pts[(i - 1 + numPoints) % numPoints];
+      const pn = pts[(i + 2) % numPoints];
+      const tension = 0.28;
+      const cp1x = p0.x + (p1.x - pp.x) * tension;
+      const cp1y = p0.y + (p1.y - pp.y) * tension;
+      const cp2x = p1.x - (pn.x - p0.x) * tension;
+      const cp2y = p1.y - (pn.y - p0.y) * tension;
+      ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p1.x, p1.y);
+    }
+    ctx.closePath();
+  }
+}
+
+// =============================================================================
+// 5. MAIN APPLICATION
+// =============================================================================
+class App {
+  constructor() {
+    this.canvas = document.getElementById('canvas');
+    this.ctx = this.canvas.getContext('2d');
+    this.audio = new AudioSystem();
+    this.creatures = [];
+    this.particles = [];
+    this.soundWaves = [];
+    this.mouseX = undefined;
+    this.mouseY = undefined;
+    this.bgPhase = 0;
+    this.animFrame = null;
+    this.draggedCreature = null;
+
+    this._resize();
+    this._initParticles();
+    this._initCreatures(14);
+    this._setupEventListeners();
+    this._loop();
+  }
+
+  _resize() {
+    const dpr = window.devicePixelRatio || 1;
+    this.w = window.innerWidth;
+    this.h = window.innerHeight;
+    this.canvas.width = this.w * dpr;
+    this.canvas.height = this.h * dpr;
+    this.canvas.style.width = this.w + 'px';
+    this.canvas.style.height = this.h + 'px';
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  _initParticles() {
+    this.particles = [];
+    const count = Math.min(80, Math.floor((this.w * this.h) / 12000));
+    for (let i = 0; i < count; i++) {
+      this.particles.push(new AmbientParticle(this.w, this.h));
+    }
+  }
+
+  _initCreatures(count) {
+    this.creatures = [];
+    const margin = 160;
+    for (let i = 0; i < count; i++) {
+      const type = CREATURE_TYPES[i % CREATURE_TYPES.length];
+      const x = margin + Math.random() * (this.w - margin * 2);
+      const y = margin + Math.random() * (this.h - margin * 2);
+      const size = 56 + Math.random() * 70;
+      this.creatures.push(new Creature(type, x, y, size));
+    }
+  }
+
+  _setupEventListeners() {
+    // Drag & Click handler
+    this.canvas.addEventListener('mousedown', (e) => {
+      if (!this.audio.initialized) {
+        this.audio.init();
+        // Hide overlay on first interaction
+        document.getElementById('overlay').classList.add('hidden');
+      }
+
+      const rect = this.canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+
+      // Check creatures in reverse (top-most first)
+      for (let i = this.creatures.length - 1; i >= 0; i--) {
+        if (this.creatures[i].containsPoint(mx, my)) {
+          this.creatures[i].dragStart(mx, my);
+          this.draggedCreature = this.creatures[i];
+          this._dragStartPos = { x: mx, y: my };
+          break;
+        }
+      }
+    });
+
+    this.canvas.addEventListener('mousemove', (e) => {
+      const rect = this.canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+
+      // If dragging, move the creature and check overlaps
+      if (this.draggedCreature) {
+        this.draggedCreature.dragMove(mx, my, this.w, this.h);
+        this._checkDragOverlaps();
+        // Still update mouseX/Y for other creatures' hover states
+        this.mouseX = mx;
+        this.mouseY = my;
+        return;
+      }
+
+      // Normal hover detection
+      this.mouseX = mx;
+      this.mouseY = my;
+      this.canvas.style.cursor = 'default';
+
+      for (let i = this.creatures.length - 1; i >= 0; i--) {
+        if (this.creatures[i].containsPoint(mx, my)) {
+          this.canvas.style.cursor = 'pointer';
+          break;
+        }
+      }
+    });
+
+    this.canvas.addEventListener('mouseup', (e) => {
+      if (this.draggedCreature) {
+        // Check if it was a quick click (no significant drag)
+        const rect = this.canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        const dx = mx - this._dragStartPos.x;
+        const dy = my - this._dragStartPos.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < 10) {
+          // Was a click, not a drag — play single creature sound
+          this.draggedCreature.onClick(this.audio);
+          this.soundWaves.push(new SoundWave(
+            this.draggedCreature.x,
+            this.draggedCreature.y,
+            this.draggedCreature.colors.wave
+          ));
+          // Gentle push to nearby particles
+          for (const p of this.particles) {
+            const pd = p.x - this.draggedCreature.x;
+            const pdy = p.y - this.draggedCreature.y;
+            const pdist = Math.sqrt(pd * pd + pdy * pdy);
+            if (pdist < 200 && pdist > 0) {
+              p.speedX += (pd / pdist) * 0.5;
+              p.speedY += (pdy / pdist) * 0.5;
+            }
+          }
+        }
+
+        this.draggedCreature.dragEnd();
+        this.draggedCreature = null;
+        this._dragStartPos = null;
+      }
+    });
+
+    this.canvas.addEventListener('mouseleave', () => {
+      if (this.draggedCreature) {
+        this.draggedCreature.dragEnd();
+        this.draggedCreature = null;
+        this._dragStartPos = null;
+      }
+      this.mouseX = undefined;
+      this.mouseY = undefined;
+    });
+
+    // Resize
+    window.addEventListener('resize', () => {
+      this._resize();
+      this._initParticles();
+    });
+
+    // Info button
+    document.getElementById('info-btn').addEventListener('click', () => {
+      const overlay = document.getElementById('overlay');
+      overlay.classList.toggle('hidden');
+    });
+  }
+
+  // Check overlaps between the dragged creature and others, playing group sounds
+  _checkDragOverlaps() {
+    if (!this.draggedCreature) return;
+
+    const now = performance.now();
+    const cooldown = 450; // ms between group sound triggers
+
+    // Find all creatures overlapping with the dragged one
+    const overlapping = [this.draggedCreature];
+    for (const c of this.creatures) {
+      if (c === this.draggedCreature) continue;
+      if (this.draggedCreature.overlapsWith(c)) {
+        overlapping.push(c);
+      }
+    }
+
+    // Also check for chain overlaps (creatures touching creatures that touch dragged one)
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const c of this.creatures) {
+        if (overlapping.includes(c)) continue;
+        for (const o of overlapping) {
+          if (c.overlapsWith(o)) {
+            overlapping.push(c);
+            changed = true;
+            break;
+          }
+        }
+      }
+    }
+
+    // If overlaps found and cooldown has passed, play all their sounds together
+    if (overlapping.length > 1 && now - this.draggedCreature.lastGroupSoundTime > cooldown) {
+      this.draggedCreature.lastGroupSoundTime = now;
+      for (const c of overlapping) {
+        c.lastGroupSoundTime = now;
+        c.clickAnimation = 1;
+        this.audio.playCreatureSound(c.type, c.x, c.y);
+        this.soundWaves.push(new SoundWave(c.x, c.y, c.colors.wave));
+
+        // Push nearby particles
+        for (const p of this.particles) {
+          const dx = p.x - c.x;
+          const dy = p.y - c.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 200 && dist > 0) {
+            p.speedX += (dx / dist) * 0.5;
+            p.speedY += (dy / dist) * 0.5;
+          }
+        }
+      }
+    }
+  }
+
+  _drawBackground() {
+    this.bgPhase += 0.002;
+
+    const ctx = this.ctx;
+    const w = this.w;
+    const h = this.h;
+    const t = this.bgPhase;
+
+    // --- 1. Dark shifting base gradient ---
+    const baseHue = 270 + Math.sin(t * 0.04) * 15;
+    const grad = ctx.createRadialGradient(
+      w * 0.5 + Math.sin(t * 0.12) * w * 0.15,
+      h * 0.3 + Math.cos(t * 0.09) * h * 0.1,
+      0,
+      w * 0.5, h * 0.5,
+      Math.max(w, h) * 0.85
+    );
+    grad.addColorStop(0, `oklch(0.14 0.04 ${baseHue + 8})`);
+    grad.addColorStop(0.5, `oklch(0.07 0.025 ${baseHue})`);
+    grad.addColorStop(1, `oklch(0.02 0.01 ${baseHue - 15})`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.save();
+
+    // --- 2. Psychedelic hexagonal tessellation ---
+    const cellSize = 85 + Math.sin(t * 0.06) * 12;
+    const ox = (Math.sin(t * 0.02) * 0.5 + 0.5) * cellSize;
+    const oy = (Math.cos(t * 0.025) * 0.5 + 0.5) * cellSize;
+    const cols = Math.ceil(w / cellSize) + 2;
+    const rows = Math.ceil(h / cellSize) + 2;
+
+    ctx.lineCap = 'round';
+
+    for (let r = -1; r < rows; r++) {
+      for (let c = -1; c < cols; c++) {
+        const cx = c * cellSize + ox;
+        const cy = r * cellSize + oy;
+        const phase = (c * 3.7 + r * 5.3) + t * 0.35;
+        const hue = 275 + Math.sin(phase * 0.25) * 25;
+        const alpha = 0.04 + Math.sin(phase * 0.4) * 0.025;
+        const rot = t * 0.06 + c * 0.15 + r * 0.12;
+        const size = cellSize * 0.34 * (0.8 + Math.sin(phase * 0.5) * 0.2);
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(rot);
+        ctx.globalAlpha = Math.max(0, alpha);
+        ctx.strokeStyle = `oklch(0.28 0.055 ${hue})`;
+        ctx.lineWidth = 0.8;
+
+        // Outer hexagon
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+          const px = Math.cos(a) * size;
+          const py = Math.sin(a) * size;
+          i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.stroke();
+
+        // Inner triangle (inverted rotation)
+        ctx.rotate(Math.PI);
+        ctx.globalAlpha *= 0.5;
+        ctx.beginPath();
+        for (let i = 0; i < 3; i++) {
+          const a = (i / 3) * Math.PI * 2 - Math.PI / 2;
+          const px = Math.cos(a) * size * 0.45;
+          const py = Math.sin(a) * size * 0.45;
+          i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.stroke();
+
+        ctx.restore();
+      }
+    }
+
+    // --- 3. Drifting concentric rings (mandala effect) ---
+    for (let i = 0; i < 4; i++) {
+      const ringRadius = 50 + i * 55 + Math.sin(t * 0.12 + i * 1.3) * 15;
+      const rx = w * 0.5 + Math.sin(t * 0.03 + i * 1.4) * w * 0.22;
+      const ry = h * 0.5 + Math.cos(t * 0.028 + i * 1.1) * h * 0.18;
+      ctx.save();
+      ctx.globalAlpha = 0.02;
+      ctx.strokeStyle = `oklch(0.32 0.04 ${280 + i * 12 + Math.sin(t * 0.05 + i) * 10})`;
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      ctx.arc(rx, ry, ringRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // --- 4. Subtle rotating radial lines (kaleidoscopic) ---
+    const numLines = 16;
+    const lineBaseRot = t * 0.02;
+    ctx.save();
+    ctx.globalAlpha = 0.015;
+    ctx.strokeStyle = `oklch(0.3 0.04 ${280 + Math.sin(t * 0.03) * 15})`;
+    ctx.lineWidth = 0.4;
+    for (let i = 0; i < numLines; i++) {
+      const angle = (i / numLines) * Math.PI * 2 + lineBaseRot;
+      const len = Math.min(w, h) * 0.6 + Math.sin(t * 0.1 + i * 2) * 40;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.5, h * 0.5);
+      ctx.lineTo(
+        w * 0.5 + Math.cos(angle) * len,
+        h * 0.5 + Math.sin(angle) * len
+      );
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.restore(); // restore global state from save() at start of _drawBackground
+  }
+
+  _update() {
+    // Update creatures
+    for (const c of this.creatures) {
+      c.update(this.w, this.h, this.mouseX, this.mouseY);
+    }
+
+    // Update particles
+    for (const p of this.particles) {
+      p.update(this.w, this.h);
+    }
+
+    // Update sound waves
+    this.soundWaves = this.soundWaves.filter(w => w.update());
+  }
+
+  _draw() {
+    this._drawBackground();
+
+    // Draw particles (behind creatures)
+    for (const p of this.particles) {
+      p.draw(this.ctx);
+    }
+
+    // Draw non-dragged creatures
+    for (const c of this.creatures) {
+      if (c.isDragging) continue;
+      c.draw(this.ctx);
+    }
+
+    // Draw dragged creature on top (so it's always visible)
+    if (this.draggedCreature) {
+      this.draggedCreature.draw(this.ctx);
+    }
+
+    // Draw sound waves (on top)
+    for (const w of this.soundWaves) {
+      w.draw(this.ctx);
+    }
+  }
+
+  _loop() {
+    this._update();
+    this._draw();
+    this.animFrame = requestAnimationFrame(() => this._loop());
+  }
+}
+
+// =============================================================================
+// 6. INIT
+// =============================================================================
+document.addEventListener('DOMContentLoaded', () => {
+  const app = new App();
+  // Debug access
+  window.__app = app;
+});
+</script>
+</body>
+</html>
