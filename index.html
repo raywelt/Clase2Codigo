@@ -87,7 +87,305 @@
     border-color: rgba(240, 230, 255, 0.25);
   }
 
-  /* Floating particles in CSS too for extra depth */
+  /* Control de tempo - slider vertical */
+  #tempo-control {
+    position: fixed;
+    top: 108px;
+    right: 28px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  #tempo-control.visible {
+    opacity: 1;
+  }
+
+  #tempo-control input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    pointer-events: all;
+    width: 4px;
+    height: 100px;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    writing-mode: vertical-lr;
+    direction: rtl;
+  }
+
+  #tempo-control input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    box-shadow: 0 0 12px rgba(192, 132, 252, 0.3);
+    transition: all 0.2s ease;
+  }
+
+  #tempo-control input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    background: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 20px rgba(192, 132, 252, 0.5);
+  }
+
+  #tempo-control input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    box-shadow: 0 0 12px rgba(192, 132, 252, 0.3);
+  }
+
+  #tempo-label {
+    pointer-events: none;
+    font-family: 'Georgia', serif;
+    font-size: 0.65rem;
+    color: rgba(240, 230, 255, 0.4);
+    letter-spacing: 0.1em;
+    transition: color 0.3s ease;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  #tempo-label .bpm-value {
+    color: rgba(240, 230, 255, 0.6);
+    font-size: 0.85rem;
+  }
+
+  /* Etiqueta "Ritmo" bajo el botón */
+  #rhythm-label {
+    position: fixed;
+    top: 86px;
+    right: 24px;
+    z-index: 10;
+    width: 56px;
+    text-align: center;
+    font-family: 'Georgia', serif;
+    font-size: 0.65rem;
+    color: rgba(240, 230, 255, 0.4);
+    letter-spacing: 0.15em;
+    pointer-events: none;
+    transition: color 0.3s ease;
+    white-space: nowrap;
+  }
+
+  /* Botón de ritmo - círculo blanco en esquina superior derecha */
+  #rhythm-btn {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 10;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    pointer-events: all;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* El círculo interior */
+  #rhythm-btn::after {
+    content: '';
+    display: block;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.7);
+    transition: all 0.3s ease;
+  }
+
+  #rhythm-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+    transform: scale(1.08);
+  }
+
+  #rhythm-btn:active {
+    transform: scale(0.92);
+  }
+
+  /* Estado playing: círculo pulsa y cambia a un cuadrado de stop */
+  #rhythm-btn.playing {
+    background: rgba(255, 80, 80, 0.2);
+    border-color: rgba(255, 80, 80, 0.6);
+    box-shadow: 0 0 30px rgba(255, 80, 80, 0.2);
+  }
+
+  #rhythm-btn.playing::after {
+    width: 14px;
+    height: 14px;
+    border-radius: 2px;
+    background: rgba(255, 80, 80, 0.8);
+  }
+
+  #rhythm-btn.playing:hover {
+    background: rgba(255, 80, 80, 0.3);
+    box-shadow: 0 0 40px rgba(255, 80, 80, 0.3);
+  }
+
+  /* Botón de ayuda - interrogante en esquina inferior izquierda */
+  #help-btn {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    z-index: 20;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(240, 230, 255, 0.08);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(240, 230, 255, 0.15);
+    color: rgba(240, 230, 255, 0.5);
+    font-size: 1rem;
+    font-family: 'Georgia', serif;
+    cursor: pointer;
+    pointer-events: all;
+    transition: all 0.4s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 15px rgba(192, 132, 252, 0.05);
+  }
+
+  #help-btn:hover {
+    background: rgba(240, 230, 255, 0.15);
+    color: rgba(240, 230, 255, 0.8);
+    border-color: rgba(240, 230, 255, 0.3);
+    box-shadow: 0 0 25px rgba(192, 132, 252, 0.15);
+    transform: scale(1.1);
+  }
+
+  #help-btn:active {
+    transform: scale(0.92);
+  }
+
+  #help-btn.active {
+    background: rgba(240, 230, 255, 0.15);
+    border-color: rgba(240, 230, 255, 0.3);
+    box-shadow: 0 0 30px rgba(192, 132, 252, 0.2);
+  }
+
+  /* Panel desplegable de instrucciones */
+  #help-panel {
+    position: fixed;
+    bottom: 76px;
+    left: 24px;
+    z-index: 20;
+    width: min(340px, calc(100vw - 48px));
+    max-height: min(400px, calc(100vh - 100px));
+    overflow-y: auto;
+    background: rgba(13, 2, 33, 0.85);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(240, 230, 255, 0.1);
+    border-radius: 16px;
+    padding: 20px 22px;
+    pointer-events: all;
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+    transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4), 0 0 60px rgba(192, 132, 252, 0.06);
+  }
+
+  #help-panel.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  #help-panel::-webkit-scrollbar {
+    width: 3px;
+  }
+
+  #help-panel::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  #help-panel::-webkit-scrollbar-thumb {
+    background: rgba(240, 230, 255, 0.15);
+    border-radius: 2px;
+  }
+
+  #help-panel h2 {
+    font-size: 0.95rem;
+    font-weight: 300;
+    color: rgba(240, 230, 255, 0.8);
+    letter-spacing: 0.12em;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+
+  #help-panel .section {
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(240, 230, 255, 0.06);
+  }
+
+  #help-panel .section:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  #help-panel .section-title {
+    font-size: 0.7rem;
+    color: rgba(192, 132, 252, 0.7);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  #help-panel .section p {
+    font-size: 0.8rem;
+    color: rgba(240, 230, 255, 0.6);
+    line-height: 1.6;
+    letter-spacing: 0.03em;
+  }
+
+  #help-panel .section p span {
+    color: rgba(240, 230, 255, 0.85);
+  }
+
+  #help-panel .section .key {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 4px;
+    background: rgba(240, 230, 255, 0.07);
+    border: 1px solid rgba(240, 230, 255, 0.1);
+    font-size: 0.7rem;
+    color: rgba(240, 230, 255, 0.7);
+    letter-spacing: 0.05em;
+  }
+
+  /* Overlay de cierre al hacer clic fuera */
+  #help-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 19;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
   body::before, body::after {
     content: '';
     position: fixed;
@@ -100,11 +398,38 @@
 <body>
   <div id="overlay">
     <h1>Organic Touch Sounds</h1>
-    <p>toca las criaturas para escucharlas cantar</p>
-    <p style="font-size: clamp(0.7rem, 1.1vw, 0.95rem); opacity: 0.5; animation-delay: 2s;">puedes arrastrarlas unas sobre otras para escucharlas juntas</p>
+    <p>haz clic en una forma y arrastra a otra para conectarlas</p>
+    <p style="font-size: clamp(0.7rem, 1.1vw, 0.95rem); opacity: 0.5; animation-delay: 2s;">cada conexión crea un arpegio en loop  ·  conexiones ilimitadas</p>
   </div>
   <canvas id="canvas"></canvas>
-  <button id="info-btn">♫  toca las formas  ♫</button>
+  <button id="info-btn">♫  conecta las formas  ♫</button>
+  <button id="rhythm-btn" aria-label="Generar ritmo aleatorio"></button>
+  <div id="rhythm-label">Ritmo</div>
+  <button id="help-btn" aria-label="Instrucciones">?</button>
+  <div id="help-overlay"></div>
+  <div id="help-panel">
+    <h2>Cómo usar</h2>
+    <div class="section">
+      <div class="section-title">Conectar criaturas</div>
+      <p><span>Haz clic</span> en una forma y <span>arrastra</span> a otra para conectarlas. Cada conexión crea un arpegio en loop.</p>
+    </div>
+    <div class="section">
+      <div class="section-title">Desconectar</div>
+      <p><span>Arrastra</span> una criatura al vacío para eliminar todas sus conexiones.</p>
+    </div>
+    <div class="section">
+      <div class="section-title">Ritmo</div>
+      <p>Toca el <span>círculo blanco</span> (arriba a la derecha) para generar un patrón de percusión aleatorio. Ajusta el <span>tempo</span> con el slider que aparece al activarlo.</p>
+    </div>
+    <div class="section">
+      <div class="section-title">Sonido</div>
+      <p>Cada forma tiene un <span>timbre único</span>. Conéctalas para escuchar arpegios en escalas pentatónicas.</p>
+    </div>
+  </div>
+  <div id="tempo-control">
+    <input type="range" id="tempo-slider" min="40" max="220" value="120" step="1" orient="vertical">
+    <div id="tempo-label"><span class="bpm-value">120</span> BPM</div>
+  </div>
 
 <script>
 // =============================================================================
@@ -124,12 +449,12 @@ class AudioSystem {
     try {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.value = 0.25;
+      this.masterGain.gain.value = 0.18;
       this.masterGain.connect(this.ctx.destination);
 
       // --- Reverb (impulso generado) ---
       const sr = this.ctx.sampleRate;
-      const len = sr * 2.5; // 2.5 second reverb
+      const len = sr * 2.5;
       const impulse = this.ctx.createBuffer(2, len, sr);
       for (let ch = 0; ch < 2; ch++) {
         const data = impulse.getChannelData(ch);
@@ -146,7 +471,7 @@ class AudioSystem {
       this.delayNode = this.ctx.createDelay(0.5);
       this.delayNode.delayTime.value = 0.35;
       const delayFeedback = this.ctx.createGain();
-      delayFeedback.gain.value = 0.15;
+      delayFeedback.gain.value = 0.12;
       const delayFilter = this.ctx.createBiquadFilter();
       delayFilter.type = 'lowpass';
       delayFilter.frequency.value = 2000;
@@ -161,17 +486,73 @@ class AudioSystem {
     }
   }
 
-
-  // Escala pentatónica mayor (frecuencias exactas)
+  // Escala pentatónica mayor
   _pentatonicNote(index) {
     const notes = [
-      261.63, 293.66, 329.63, 392.00, 440.00, // C4, D4, E4, G4, A4
-      523.25, 587.33, 659.25, 783.99, 880.00, // C5, D5, E5, G5, A5
+      261.63, 293.66, 329.63, 392.00, 440.00,
+      523.25, 587.33, 659.25, 783.99, 880.00,
     ];
     return notes[index % notes.length];
   }
 
-  // Sonido según tipo de criatura
+  // Índice de nota determinístico por tipo de criatura
+  getNoteIndexForType(type, offset = 0) {
+    const typeOffsets = { circle: 0, triangle: 3, square: 2, hexagon: 4, diamond: 1 };
+    return (typeOffsets[type] || 0) + offset;
+  }
+
+  // Tocar una nota programada a tiempo exacto (para arpegios)
+  playScheduledNote(type, baseFreq, time, duration = 0.15, gainMult = 1) {
+    if (!this.ctx) return;
+    const ctx = this.ctx;
+
+    const oscTypes = {
+      circle: 'sine',
+      triangle: 'triangle',
+      square: 'sine',
+      hexagon: 'sine',
+      diamond: 'sawtooth',
+    };
+
+    const gainNode = ctx.createGain();
+    gainNode.gain.value = 0;
+
+    const dryGain = ctx.createGain();
+    dryGain.gain.value = 0.5;
+    gainNode.connect(dryGain);
+    dryGain.connect(this.masterGain);
+    gainNode.connect(this.reverbNode);
+
+    const attack = 0.006;
+    const decay = duration * 0.75;
+    gainNode.gain.setValueAtTime(0, time);
+    gainNode.gain.linearRampToValueAtTime(gainMult * 0.10, time + attack);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, time + attack + decay);
+
+    const osc = ctx.createOscillator();
+    osc.type = oscTypes[type] || 'sine';
+    osc.frequency.value = baseFreq;
+    osc.connect(gainNode);
+    osc.start(time);
+    osc.stop(time + attack + decay + 0.02);
+
+    // Añadir armónico suave (un quinto arriba)
+    const osc2 = ctx.createOscillator();
+    osc2.type = 'sine';
+    osc2.frequency.value = baseFreq * 1.5;
+    const g2 = ctx.createGain();
+    g2.gain.value = 0;
+    g2.gain.setValueAtTime(0, time);
+    g2.gain.linearRampToValueAtTime(gainMult * 0.03, time + attack);
+    g2.gain.exponentialRampToValueAtTime(0.001, time + attack + decay);
+    osc2.connect(g2);
+    g2.connect(this.reverbNode);
+    g2.connect(dryGain);
+    osc2.start(time);
+    osc2.stop(time + attack + decay + 0.02);
+  }
+
+  // Sonido one-shot original (click en criatura suelta)
   playCreatureSound(type, x, y) {
     if (!this.initialized) this.init();
     if (!this.ctx) return;
@@ -179,89 +560,37 @@ class AudioSystem {
     const ctx = this.ctx;
     const now = ctx.currentTime;
 
-    // Parámetros según el tipo
     let params;
     switch (type) {
       case 'circle':
-        params = {
-          oscTypes: ['sine'],
-          noteIndex: Math.floor(Math.random() * 3),     // low: C-D-E
-          freqMult: [1],
-          gain: 0.18,
-          attack: 0.15,
-          decay: 0.6,
-          detune: 0,
-        };
+        params = { oscTypes: ['sine'], noteIndex: Math.floor(Math.random() * 3), freqMult: [1], gain: 0.18, attack: 0.15, decay: 0.6 };
         break;
       case 'triangle':
-        params = {
-          oscTypes: ['triangle'],
-          noteIndex: 3 + Math.floor(Math.random() * 3), // mid: G-A-C
-          freqMult: [1],
-          gain: 0.12,
-          attack: 0.02,
-          decay: 0.8,
-          detune: 0,
-        };
+        params = { oscTypes: ['triangle'], noteIndex: 3 + Math.floor(Math.random() * 3), freqMult: [1], gain: 0.12, attack: 0.02, decay: 0.8 };
         break;
       case 'square':
-        params = {
-          oscTypes: ['sine', 'sine'],
-          noteIndex: 2 + Math.floor(Math.random() * 3), // mid: E-G-A
-          freqMult: [1, 2.01],
-          gain: 0.10,
-          attack: 0.1,
-          decay: 0.7,
-          detune: 5,
-        };
+        params = { oscTypes: ['sine', 'sine'], noteIndex: 2 + Math.floor(Math.random() * 3), freqMult: [1, 2.01], gain: 0.10, attack: 0.1, decay: 0.7, detune: 5 };
         break;
       case 'hexagon':
-        params = {
-          oscTypes: ['sine', 'sine'],
-          noteIndex: 4 + Math.floor(Math.random() * 4), // mid-high: A-C-D-E
-          freqMult: [1, 4.02],
-          gain: 0.08,
-          attack: 0.005,
-          decay: 1.2,
-          detune: 0,
-        };
+        params = { oscTypes: ['sine', 'sine'], noteIndex: 4 + Math.floor(Math.random() * 4), freqMult: [1, 4.02], gain: 0.08, attack: 0.005, decay: 1.2 };
         break;
       case 'diamond':
-        params = {
-          oscTypes: ['sawtooth', 'sine'],
-          noteIndex: 1 + Math.floor(Math.random() * 4), // mid: D-E-G-A
-          freqMult: [1, 1.5],
-          gain: 0.07,
-          attack: 0.005,
-          decay: 0.5,
-          detune: 0,
-        };
+        params = { oscTypes: ['sawtooth', 'sine'], noteIndex: 1 + Math.floor(Math.random() * 4), freqMult: [1, 1.5], gain: 0.07, attack: 0.005, decay: 0.5 };
         break;
       default:
-        params = {
-          oscTypes: ['sine'],
-          noteIndex: Math.floor(Math.random() * 7),
-          freqMult: [1],
-          gain: 0.1,
-          attack: 0.05,
-          decay: 0.5,
-          detune: 0,
-        };
+        params = { oscTypes: ['sine'], noteIndex: Math.floor(Math.random() * 7), freqMult: [1], gain: 0.1, attack: 0.05, decay: 0.5 };
     }
 
     const baseFreq = this._pentatonicNote(params.noteIndex);
     const gainNode = ctx.createGain();
     gainNode.gain.value = 0;
 
-    // Conectar a reverb + dry
     const dryGain = ctx.createGain();
     dryGain.gain.value = 0.6;
     gainNode.connect(dryGain);
     dryGain.connect(this.masterGain);
-
     gainNode.connect(this.reverbNode);
 
-    // Envelope
     gainNode.gain.setValueAtTime(0, now);
     gainNode.gain.linearRampToValueAtTime(params.gain, now + params.attack);
     gainNode.gain.exponentialRampToValueAtTime(0.001, now + params.attack + params.decay);
@@ -270,22 +599,13 @@ class AudioSystem {
     for (let i = 0; i < params.oscTypes.length; i++) {
       const osc = ctx.createOscillator();
       osc.type = params.oscTypes[i];
-      osc.frequency.value = baseFreq * params.freqMult[i] + (i > 0 ? params.detune : 0);
+      osc.frequency.value = baseFreq * params.freqMult[i] + (i > 0 ? (params.detune || 0) : 0);
       osc.connect(gainNode);
       osc.start(now);
       osc.stop(now + params.attack + params.decay + 0.05);
     }
 
-    // Low-pass filter for warmth
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = 1000 + Math.random() * 2000;
-    filter.Q.value = 0.5;
-
-    // Reconectar a través del filtro si es diamond (sonido más suave)
     if (type === 'diamond') {
-      // Para diamond, necesitamos rehacer con filtro
-      // Ya no podemos cambiar la conexión, así que añadimos un segundo sonido
       this._playFilteredNote(ctx, baseFreq, params, now);
     }
   }
@@ -293,19 +613,15 @@ class AudioSystem {
   _playFilteredNote(ctx, baseFreq, params, now) {
     const gainNode = ctx.createGain();
     gainNode.gain.value = 0;
-
     const filter = ctx.createBiquadFilter();
     filter.type = 'lowpass';
     filter.frequency.value = 600 + Math.random() * 800;
     filter.Q.value = 0.8;
-
     gainNode.connect(filter);
     filter.connect(this.masterGain);
-
     gainNode.gain.setValueAtTime(0, now);
     gainNode.gain.linearRampToValueAtTime(params.gain * 0.8, now + 0.01);
     gainNode.gain.exponentialRampToValueAtTime(0.001, now + params.decay * 1.5);
-
     for (let i = 0; i < params.oscTypes.length; i++) {
       const osc = ctx.createOscillator();
       osc.type = params.oscTypes[i];
@@ -313,6 +629,212 @@ class AudioSystem {
       osc.connect(gainNode);
       osc.start(now);
       osc.stop(now + params.decay * 1.5 + 0.05);
+    }
+  }
+
+  // Sonidos de percusión sintetizados para el generador de ritmos
+  playPercussionSound(type, time, gain = 1) {
+    if (!this.ctx) return;
+    const ctx = this.ctx;
+    const master = this.masterGain;
+
+    switch (type) {
+      case 'kick': {
+        // Bombo: oscilador sinusoidal con pitch decay rápido
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(160, time);
+        osc.frequency.exponentialRampToValueAtTime(35, time + 0.12);
+
+        const gainNode = ctx.createGain();
+        gainNode.gain.setValueAtTime(0, time);
+        gainNode.gain.linearRampToValueAtTime(gain * 0.35, time + 0.005);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.3);
+
+        osc.connect(gainNode);
+        gainNode.connect(master);
+        osc.start(time);
+        osc.stop(time + 0.35);
+        break;
+      }
+      case 'snare': {
+        // Caja: mezcla de tono y ruido
+        const osc = ctx.createOscillator();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(180, time);
+        osc.frequency.exponentialRampToValueAtTime(80, time + 0.08);
+
+        const gainNode = ctx.createGain();
+        gainNode.gain.setValueAtTime(0, time);
+        gainNode.gain.linearRampToValueAtTime(gain * 0.25, time + 0.003);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+        osc.connect(gainNode);
+        gainNode.connect(master);
+        osc.start(time);
+        osc.stop(time + 0.2);
+
+        // Ruido blanco filtrado
+        const bufferSize = ctx.sampleRate * 0.15;
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        const noise = ctx.createBufferSource();
+        noise.buffer = noiseBuffer;
+
+        const noiseFilter = ctx.createBiquadFilter();
+        noiseFilter.type = 'bandpass';
+        noiseFilter.frequency.value = 3000;
+        noiseFilter.Q.value = 0.5;
+
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.setValueAtTime(0, time);
+        noiseGain.gain.linearRampToValueAtTime(gain * 0.2, time + 0.003);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.12);
+
+        noise.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(master);
+        noise.start(time);
+        noise.stop(time + 0.2);
+        break;
+      }
+      case 'hihat': {
+        // Hi-hat cerrado: ruido filtrado paso alto, muy corto
+        const bufferSize = ctx.sampleRate * 0.06;
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        const noise = ctx.createBufferSource();
+        noise.buffer = noiseBuffer;
+
+        const hpFilter = ctx.createBiquadFilter();
+        hpFilter.type = 'highpass';
+        hpFilter.frequency.value = 7000;
+
+        const gainNode = ctx.createGain();
+        gainNode.gain.setValueAtTime(0, time);
+        gainNode.gain.linearRampToValueAtTime(gain * 0.15, time + 0.002);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+
+        noise.connect(hpFilter);
+        hpFilter.connect(gainNode);
+        gainNode.connect(master);
+        noise.start(time);
+        noise.stop(time + 0.08);
+        break;
+      }
+      case 'open-hh': {
+        // Hi-hat abierto: ruido más largo
+        const bufferSize = ctx.sampleRate * 0.25;
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        const noise = ctx.createBufferSource();
+        noise.buffer = noiseBuffer;
+
+        const hpFilter = ctx.createBiquadFilter();
+        hpFilter.type = 'highpass';
+        hpFilter.frequency.value = 5000;
+
+        const gainNode = ctx.createGain();
+        gainNode.gain.setValueAtTime(0, time);
+        gainNode.gain.linearRampToValueAtTime(gain * 0.12, time + 0.005);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+
+        noise.connect(hpFilter);
+        hpFilter.connect(gainNode);
+        gainNode.connect(master);
+        noise.start(time);
+        noise.stop(time + 0.3);
+        break;
+      }
+      case 'clap': {
+        // Palmada: ruido con envelope característico
+        const bufferSize = ctx.sampleRate * 0.2;
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        const noise = ctx.createBufferSource();
+        noise.buffer = noiseBuffer;
+
+        const bpFilter = ctx.createBiquadFilter();
+        bpFilter.type = 'bandpass';
+        bpFilter.frequency.value = 2000;
+        bpFilter.Q.value = 0.3;
+
+        const gainNode = ctx.createGain();
+        gainNode.gain.setValueAtTime(0, time);
+        gainNode.gain.linearRampToValueAtTime(gain * 0.08, time + 0.005);
+        gainNode.gain.setValueAtTime(gain * 0.06, time + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+
+        noise.connect(bpFilter);
+        bpFilter.connect(gainNode);
+        gainNode.connect(master);
+        noise.start(time);
+        noise.stop(time + 0.25);
+        break;
+      }
+      case 'tom': {
+        // Tom: oscilador sinusoidal con pitch decay medio
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(220 + Math.random() * 80, time);
+        osc.frequency.exponentialRampToValueAtTime(60, time + 0.15);
+
+        const gainNode = ctx.createGain();
+        gainNode.gain.setValueAtTime(0, time);
+        gainNode.gain.linearRampToValueAtTime(gain * 0.25, time + 0.005);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.25);
+
+        osc.connect(gainNode);
+        gainNode.connect(master);
+        osc.start(time);
+        osc.stop(time + 0.3);
+        break;
+      }
+      case 'click': {
+        // Click: burst muy corto de alta frecuencia
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = 1000 + Math.random() * 500;
+
+        const gainNode = ctx.createGain();
+        gainNode.gain.setValueAtTime(0, time);
+        gainNode.gain.linearRampToValueAtTime(gain * 0.08, time + 0.001);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.02);
+
+        osc.connect(gainNode);
+        gainNode.connect(master);
+        osc.start(time);
+        osc.stop(time + 0.03);
+        break;
+      }
+      case 'rimshot': {
+        // Rimshot: tono agudo + ruido, muy corto
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = 2500;
+
+        const gainNode = ctx.createGain();
+        gainNode.gain.setValueAtTime(0, time);
+        gainNode.gain.linearRampToValueAtTime(gain * 0.12, time + 0.002);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.06);
+
+        osc.connect(gainNode);
+        gainNode.connect(master);
+        osc.start(time);
+        osc.stop(time + 0.08);
+        break;
+      }
     }
   }
 }
@@ -367,7 +889,7 @@ class AmbientParticle {
 }
 
 // =============================================================================
-// 3. SOUND WAVE - Onda expansiva cuando suena una criatura
+// 3. SOUND WAVE - Onda expansiva
 // =============================================================================
 class SoundWave {
   constructor(x, y, color) {
@@ -399,7 +921,6 @@ class SoundWave {
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Inner ring
     ctx.globalAlpha = this.opacity * 0.3;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius * 0.6, 0, Math.PI * 2);
@@ -409,7 +930,7 @@ class SoundWave {
 }
 
 // =============================================================================
-// 4. CREATURE - Criatura orgánica
+// 4. CREATURE - Criatura orgánica (siempre en movimiento)
 // =============================================================================
 const CREATURE_TYPES = ['circle', 'triangle', 'square', 'hexagon', 'diamond'];
 
@@ -427,7 +948,7 @@ class Creature {
     this.x = x;
     this.y = y;
     this.targetSize = size;
-    this.size = size * 0.5; // starts small, grows in
+    this.size = size * 0.5;
     this.rotation = Math.random() * Math.PI * 2;
     this.rotSpeed = (Math.random() - 0.5) * 0.003;
     this.vx = (Math.random() - 0.5) * 0.2;
@@ -452,28 +973,24 @@ class Creature {
     this.age = 0;
     this.spawnDuration = 120;
 
-    // Interaction
+    // Interaction states
     this.hovered = false;
-    this.clickAnimation = 0; // 0 = not animating, 1+ = animating
+    this.isSelected = false;       // clicked, waiting to connect
+    this.isTargeted = false;       // another creature is being dragged towards it
+    this.clickAnimation = 0;
     this.clickScale = 1;
     this.lastClickTime = 0;
 
-    // Drag & drop
-    this.isDragging = false;
-    this.dragOffsetX = 0;
-    this.dragOffsetY = 0;
-    this.lastGroupSoundTime = 0;
+    // Connection pulse (for connected creatures)
+    this.connectionPhase = Math.random() * Math.PI * 2;
 
     // Visuals
     this.colors = TYPE_COLORS[type];
     this.hueShift = 0;
-
-    // Unique variation
     this.colorVariation = 0.85 + Math.random() * 0.3;
   }
 
   update(w, h, mouseX, mouseY) {
-    if (this.isDragging) return;
     this.age++;
 
     // --- Spawn animation ---
@@ -485,17 +1002,9 @@ class Creature {
     const wanderX = Math.cos(this.wanderAngle) * this.wanderRadius;
     const wanderY = Math.sin(this.wanderAngle) * this.wanderRadius;
 
-    // --- Edge avoidance ---
-    const margin = 120;
-    let edgePushX = 0, edgePushY = 0;
-    if (this.x < margin) edgePushX = 1 - this.x / margin;
-    if (this.x > w - margin) edgePushX = (w - this.x) / margin - 1;
-    if (this.y < margin) edgePushY = 1 - this.y / margin;
-    if (this.y > h - margin) edgePushY = (h - this.y) / margin - 1;
-
-    // Apply forces
-    this.vx += wanderX * 0.02 + edgePushX * 0.03;
-    this.vy += wanderY * 0.02 + edgePushY * 0.03;
+    // Apply wander force
+    this.vx += wanderX * 0.02;
+    this.vy += wanderY * 0.02;
 
     // Damping
     this.vx *= 0.98;
@@ -516,15 +1025,32 @@ class Creature {
     this.x += this.vx + bobX;
     this.y += this.vy + bobY;
 
-    // Bound softly
-    this.x = Math.max(margin * 0.3, Math.min(w - margin * 0.3, this.x));
-    this.y = Math.max(margin * 0.3, Math.min(h - margin * 0.3, this.y));
+    // --- Edge bouncing (rebote contra bordes) ---
+    const radius = this.currentSize;
+    const bounceEnergy = 0.6;
+    if (this.x - radius < 0) {
+      this.x = radius;
+      this.vx = Math.abs(this.vx) * bounceEnergy;
+    }
+    if (this.x + radius > w) {
+      this.x = w - radius;
+      this.vx = -Math.abs(this.vx) * bounceEnergy;
+    }
+    if (this.y - radius < 0) {
+      this.y = radius;
+      this.vy = Math.abs(this.vy) * bounceEnergy;
+    }
+    if (this.y + radius > h) {
+      this.y = h - radius;
+      this.vy = -Math.abs(this.vy) * bounceEnergy;
+    }
 
     // Rotation
     this.rotation += this.rotSpeed;
 
     // Pulse
     this.pulsePhase += this.pulseSpeed;
+    this.connectionPhase += 0.02;
 
     // Click animation
     if (this.clickAnimation > 0) {
@@ -534,42 +1060,13 @@ class Creature {
     }
 
     // Hover detection
-    if (mouseX !== undefined && mouseY !== undefined) {
-      this.hovered = this.containsPoint(mouseX, mouseY);
-    } else {
-      this.hovered = false;
-    }
+    this.hovered = mouseX !== undefined && mouseY !== undefined && this.containsPoint(mouseX, mouseY);
   }
 
   containsPoint(px, py) {
     const dx = px - this.x;
     const dy = py - this.y;
     return (dx * dx + dy * dy) < (this.size * this.size * 1.5);
-  }
-
-  overlapsWith(other) {
-    const dx = this.x - other.x;
-    const dy = this.y - other.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    const threshold = (this.currentSize + other.currentSize) * 0.85;
-    return dist < threshold;
-  }
-
-  dragStart(mx, my) {
-    this.isDragging = true;
-    this.dragOffsetX = mx - this.x;
-    this.dragOffsetY = my - this.y;
-    this.vx = 0;
-    this.vy = 0;
-  }
-
-  dragMove(mx, my, w, h) {
-    this.x = Math.max(30, Math.min(w - 30, mx - this.dragOffsetX));
-    this.y = Math.max(30, Math.min(h - 30, my - this.dragOffsetY));
-  }
-
-  dragEnd() {
-    this.isDragging = false;
   }
 
   onClick(audioSystem) {
@@ -580,7 +1077,8 @@ class Creature {
 
   get currentSize() {
     const pulse = 1 + Math.sin(this.pulsePhase) * this.pulseAmount;
-    return this.size * pulse * this.clickScale;
+    const selPulse = this.isSelected ? 1 + Math.sin(this.connectionPhase * 2) * 0.08 : 1;
+    return this.size * pulse * this.clickScale * selPulse;
   }
 
   draw(ctx) {
@@ -588,7 +1086,6 @@ class Creature {
     const alpha = Math.min(1, this.age / 40);
     const time = performance.now() * 0.001;
 
-    // --- Organic blob parameters per type ---
     const blobParams = {
       circle:   { points: 7, wobble: 0.28, lobes: 3 },
       triangle: { points: 6, wobble: 0.38, lobes: 2 },
@@ -601,11 +1098,13 @@ class Creature {
 
     // --- Glow ---
     ctx.save();
-    const glowSize = s * 2.5;
+    const glowMultiplier = this.isSelected ? 2.5 : (this.isTargeted ? 1.8 : 1);
+    const glowSize = s * 2.5 * glowMultiplier;
+    const glowColor = this.isSelected ? '#f0e6ff' : this.colors.glow;
     const glow = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, glowSize);
-    glow.addColorStop(0, this.colors.glow + '40');
-    glow.addColorStop(0.5, this.colors.glow + '15');
-    glow.addColorStop(1, this.colors.glow + '00');
+    glow.addColorStop(0, glowColor + (this.isSelected ? '60' : '40'));
+    glow.addColorStop(0.5, glowColor + (this.isSelected ? '25' : '15'));
+    glow.addColorStop(1, glowColor + '00');
     ctx.fillStyle = glow;
     ctx.beginPath();
     ctx.arc(this.x, this.y, glowSize, 0, Math.PI * 2);
@@ -615,21 +1114,21 @@ class Creature {
     // --- Main organic blob ---
     ctx.save();
     ctx.shadowColor = this.colors.glow;
-    ctx.shadowBlur = this.hovered ? 30 : 15;
-    ctx.globalAlpha = alpha * (this.hovered ? 0.6 : 0.5);
+    ctx.shadowBlur = this.isSelected ? 40 : (this.hovered ? 30 : 15);
+    ctx.globalAlpha = alpha * (this.isSelected ? 0.75 : (this.hovered ? 0.6 : 0.5));
     ctx.translate(this.x, this.y);
     ctx.rotate(this.rotation);
 
-    ctx.fillStyle = this.colors.fill;
-    ctx.strokeStyle = this.colors.glow;
-    ctx.lineWidth = 1.5;
+    ctx.fillStyle = this.isSelected ? '#f0e6ff' : this.colors.fill;
+    ctx.strokeStyle = this.isSelected ? '#c084fc' : this.colors.glow;
+    ctx.lineWidth = this.isSelected ? 2 : 1.5;
 
     const pts = this._generateBlobPoints(shapeSize, bp, time);
     this._drawBlobPath(ctx, pts, bp.points);
     ctx.fill();
     ctx.stroke();
 
-    // Subtle inner veins for organic feel
+    // Inner veins
     ctx.globalAlpha = 0.06;
     ctx.strokeStyle = this.colors.glow;
     ctx.lineWidth = 0.5;
@@ -643,7 +1142,7 @@ class Creature {
 
     // --- Inner glow (highlight) ---
     ctx.save();
-    ctx.globalAlpha = alpha * 0.2;
+    ctx.globalAlpha = alpha * (this.isSelected ? 0.35 : 0.2);
     ctx.translate(this.x, this.y);
     ctx.rotate(this.rotation);
 
@@ -656,8 +1155,40 @@ class Creature {
     ctx.fill();
     ctx.restore();
 
-    // --- Hover indicator (pulsing organic outline) ---
-    if (this.hovered) {
+    // --- Selected indicator (pulsing ring) ---
+    if (this.isSelected) {
+      ctx.save();
+      ctx.globalAlpha = 0.4 + Math.sin(performance.now() * 0.004) * 0.15;
+      ctx.strokeStyle = '#f0e6ff';
+      ctx.lineWidth = 1.5;
+      ctx.shadowColor = '#c084fc';
+      ctx.shadowBlur = 25;
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.rotation);
+      const ringPts = this._generateBlobPoints(s * 1.15, { ...bp, wobble: bp.wobble * 0.5 }, time + 0.8);
+      this._drawBlobPath(ctx, ringPts, bp.points);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // --- Targeted indicator ---
+    if (this.isTargeted) {
+      ctx.save();
+      ctx.globalAlpha = 0.3 + Math.sin(performance.now() * 0.005) * 0.1;
+      ctx.strokeStyle = this.colors.glow;
+      ctx.lineWidth = 1;
+      ctx.shadowColor = this.colors.glow;
+      ctx.shadowBlur = 20;
+      ctx.translate(this.x, this.y);
+      ctx.rotate(this.rotation);
+      const ringPts = this._generateBlobPoints(s * 1.1, { ...bp, wobble: bp.wobble * 0.5 }, time + 0.8);
+      this._drawBlobPath(ctx, ringPts, bp.points);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // --- Hover indicator ---
+    if (this.hovered && !this.isSelected && !this.isTargeted) {
       ctx.save();
       ctx.globalAlpha = 0.3 + Math.sin(performance.now() * 0.003) * 0.1;
       ctx.strokeStyle = this.colors.glow;
@@ -684,7 +1215,6 @@ class Creature {
         Math.sin(angle * 5 + time * 0.9 + 1.3) * bp.wobble * 0.25 +
         Math.cos(angle * 3 + time * 0.3 + this.bobPhase) * bp.wobble * 0.2
       );
-      // Stretch for elongated types (e.g. diamond) — elongates vertically
       if (bp.stretch && bp.stretch !== 1.0) {
         r *= (1 + (bp.stretch - 1) * Math.abs(Math.sin(angle)));
       }
@@ -716,7 +1246,167 @@ class Creature {
 }
 
 // =============================================================================
-// 5. MAIN APPLICATION
+// 5. CONNECTION - Conexión entre dos criaturas con arpegio en loop
+// =============================================================================
+class Connection {
+  constructor(a, b, audioSystem) {
+    this.a = a;
+    this.b = b;
+    this.audio = audioSystem;
+    this.id = Date.now() + Math.random();
+    this.creationTime = performance.now();
+
+    // Arpeggio state
+    this.isPlaying = false;
+    this.scheduleTimer = null;
+    this.tempo = 100; // BPM
+    this.stepDuration = 60 / this.tempo / 4; // semi-corchea
+    this.currentStep = 0;
+    this.nextScheduledTime = null;
+
+    // Pre-determinar notas del arpegio (4 pasos: A, B, A^8va, B^8va)
+    this.notes = this._generateArpeggioNotes();
+
+    // Iniciar loop
+    this.start();
+  }
+
+  _generateArpeggioNotes() {
+    const baseA = this.audio._pentatonicNote(this.audio.getNoteIndexForType(this.a.type, 0));
+    const baseB = this.audio._pentatonicNote(this.audio.getNoteIndexForType(this.b.type, 0));
+    // Añadir variación sutil para que cada conexión suene única
+    const varA = this.audio._pentatonicNote(this.audio.getNoteIndexForType(this.a.type, 2));
+    const varB = this.audio._pentatonicNote(this.audio.getNoteIndexForType(this.b.type, 2));
+    return [
+      { creature: this.a, freq: baseA },
+      { creature: this.b, freq: baseB },
+      { creature: this.a, freq: varA },
+      { creature: this.b, freq: varB },
+      { creature: this.a, freq: baseA * 2 },
+      { creature: this.b, freq: baseB * 2 },
+      { creature: this.a, freq: varA * 2 },
+      { creature: this.b, freq: varB * 2 },
+    ];
+  }
+
+  start() {
+    if (this.isPlaying) return;
+    if (!this.audio.ctx) return;
+    this.isPlaying = true;
+    this.currentStep = 0;
+    this.nextScheduledTime = this.audio.ctx.currentTime + 0.05;
+
+    const scheduleLoop = () => {
+      if (!this.isPlaying) return;
+      const now = this.audio.ctx.currentTime;
+      while (this.nextScheduledTime < now + 0.25) {
+        const note = this.notes[this.currentStep % this.notes.length];
+        // Volumen ligeramente más bajo para evitar saturación con múltiples conexiones
+        const gain = Math.max(0.3, 1 - (this.currentStep % 4) * 0.1);
+        this.audio.playScheduledNote(
+          note.creature.type,
+          note.freq,
+          this.nextScheduledTime,
+          0.1,
+          gain * 0.6
+        );
+        this.nextScheduledTime += this.stepDuration;
+        this.currentStep++;
+      }
+      this.scheduleTimer = requestAnimationFrame(scheduleLoop);
+    };
+
+    scheduleLoop();
+  }
+
+  stop() {
+    this.isPlaying = false;
+    if (this.scheduleTimer) {
+      cancelAnimationFrame(this.scheduleTimer);
+      this.scheduleTimer = null;
+    }
+  }
+
+  draw(ctx, time) {
+    const ax = this.a.x, ay = this.a.y;
+    const bx = this.b.x, by = this.b.y;
+    const dx = bx - ax;
+    const dy = by - ay;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 1) return;
+
+    const pulse = this.isPlaying ? Math.sin(time * 0.003 + this.id * 10) : 0;
+
+    // Curva bezier orgánica
+    const offset = Math.min(dist * 0.3, 80) + pulse * 15;
+    const nx = -dy / dist;
+    const ny = dx / dist;
+    const cp1x = ax + dx * 0.25 + nx * offset;
+    const cp1y = ay + dy * 0.25 + ny * offset;
+    const cp2x = bx - dx * 0.25 + nx * offset;
+    const cp2y = by - dy * 0.25 + ny * offset;
+
+    ctx.save();
+
+    // --- Sombra brillante ---
+    ctx.shadowColor = 'rgba(192, 132, 252, 0.5)';
+    ctx.shadowBlur = 20 + pulse * 10;
+
+    // --- Línea principal con gradiente ---
+    const grad = ctx.createLinearGradient(ax, ay, bx, by);
+    grad.addColorStop(0, this.a.colors.glow + '60');
+    grad.addColorStop(0.5, '#f0e6ff80');
+    grad.addColorStop(1, this.b.colors.glow + '60');
+
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 2 + pulse * 0.5;
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, bx, by);
+    ctx.stroke();
+
+    // --- Línea interior más brillante ---
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 0.4 + pulse * 0.15;
+    ctx.strokeStyle = 'rgba(240, 230, 255, 0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, bx, by);
+    ctx.stroke();
+
+    // --- Pequeñas partículas viajando por la línea ---
+    const numParticles = 3;
+    for (let i = 0; i < numParticles; i++) {
+      const t = ((time * 0.001 * 80 + i / numParticles + this.id) % 1);
+      const tt = t;
+      const oneMinusT = 1 - tt;
+      const ptX = oneMinusT * oneMinusT * oneMinusT * ax +
+                  3 * oneMinusT * oneMinusT * tt * cp1x +
+                  3 * oneMinusT * tt * tt * cp2x +
+                  tt * tt * tt * bx;
+      const ptY = oneMinusT * oneMinusT * oneMinusT * ay +
+                  3 * oneMinusT * oneMinusT * tt * cp1y +
+                  3 * oneMinusT * tt * tt * cp2y +
+                  tt * tt * tt * by;
+
+      ctx.save();
+      ctx.globalAlpha = 0.5 + Math.sin(t * Math.PI) * 0.3;
+      ctx.fillStyle = '#f0e6ff';
+      ctx.shadowColor = '#c084fc';
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(ptX, ptY, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+}
+
+// =============================================================================
+// 6. MAIN APPLICATION
 // =============================================================================
 class App {
   constructor() {
@@ -730,7 +1420,24 @@ class App {
     this.mouseY = undefined;
     this.bgPhase = 0;
     this.animFrame = null;
-    this.draggedCreature = null;
+
+    // Connection state
+    this.selectedCreature = null;
+    this.connections = [];
+    this.dragMouseX = undefined;
+    this.dragMouseY = undefined;
+    this.isDraggingFromSelected = false;
+    this._didDrag = false;
+
+    // Rhythm pattern state
+    this._rhythmActive = false;
+    this._rhythmTimer = null;
+    this._lastBeatTime = 0;
+    this._lastBeatIntensity = 0;
+    this._rhythmPulse = 0;
+    this._rhythmSubBeat = 0;
+    this._rhythmBpm = 120;
+    this._rhythmLoopCount = 0;
 
     this._resize();
     this._initParticles();
@@ -770,12 +1477,68 @@ class App {
     }
   }
 
+  _findCreatureAt(mx, my) {
+    for (let i = this.creatures.length - 1; i >= 0; i--) {
+      if (this.creatures[i].containsPoint(mx, my)) {
+        return this.creatures[i];
+      }
+    }
+    return null;
+  }
+
+  _createConnection(a, b) {
+    // No conectarse a sí mismo
+    if (a === b) return false;
+
+    // Verificar si ya existe conexión entre estas dos criaturas
+    for (const conn of this.connections) {
+      if ((conn.a === a && conn.b === b) || (conn.a === b && conn.b === a)) {
+        return false;
+      }
+    }
+
+    // Crear nueva conexión
+    const conn = new Connection(a, b, this.audio);
+    this.connections.push(conn);
+
+    // Ondas expansivas de confirmación
+    this.soundWaves.push(new SoundWave(a.x, a.y, a.colors.wave));
+    this.soundWaves.push(new SoundWave(b.x, b.y, b.colors.wave));
+
+    // Animación de click en ambas criaturas
+    a.clickAnimation = 1;
+    b.clickAnimation = 1;
+
+    return true;
+  }
+
+  _removeConnectionsForCreature(creature) {
+    // Recoger conexiones a eliminar (evitar modificar el array mientras se itera)
+    const toRemove = this.connections.filter(
+      conn => conn.a === creature || conn.b === creature
+    );
+
+    if (toRemove.length === 0) return;
+
+    for (const conn of toRemove) {
+      conn.stop();
+      // Onda expansiva en la otra criatura de la conexión
+      const other = conn.a === creature ? conn.b : conn.a;
+      this.soundWaves.push(new SoundWave(other.x, other.y, other.colors.wave));
+    }
+
+    // Onda en la criatura misma
+    this.soundWaves.push(new SoundWave(creature.x, creature.y, creature.colors.wave));
+
+    // Eliminar del array
+    this.connections = this.connections.filter(conn => !toRemove.includes(conn));
+  }
+
   _setupEventListeners() {
-    // Drag & Click handler
+    // --- mousedown ---
     this.canvas.addEventListener('mousedown', (e) => {
       if (!this.audio.initialized) {
         this.audio.init();
-        // Hide overlay on first interaction
         document.getElementById('overlay').classList.add('hidden');
       }
 
@@ -783,154 +1546,366 @@ class App {
       const mx = e.clientX - rect.left;
       const my = e.clientY - rect.top;
 
-      // Check creatures in reverse (top-most first)
-      for (let i = this.creatures.length - 1; i >= 0; i--) {
-        if (this.creatures[i].containsPoint(mx, my)) {
-          this.creatures[i].dragStart(mx, my);
-          this.draggedCreature = this.creatures[i];
-          this._dragStartPos = { x: mx, y: my };
-          break;
-        }
+      const creature = this._findCreatureAt(mx, my);
+      if (creature) {
+        // Seleccionar criatura e iniciar arrastre para conexión
+        creature.onClick(this.audio);
+        creature.isSelected = true;
+        this.selectedCreature = creature;
+        this.isDraggingFromSelected = true;
+        this._didDrag = false;
+        this.dragMouseX = mx;
+        this.dragMouseY = my;
       }
     });
 
+    // --- mousemove ---
     this.canvas.addEventListener('mousemove', (e) => {
       const rect = this.canvas.getBoundingClientRect();
       const mx = e.clientX - rect.left;
       const my = e.clientY - rect.top;
-
-      // If dragging, move the creature and check overlaps
-      if (this.draggedCreature) {
-        this.draggedCreature.dragMove(mx, my, this.w, this.h);
-        this._checkDragOverlaps();
-        // Still update mouseX/Y for other creatures' hover states
-        this.mouseX = mx;
-        this.mouseY = my;
-        return;
-      }
-
-      // Normal hover detection
       this.mouseX = mx;
       this.mouseY = my;
-      this.canvas.style.cursor = 'default';
 
-      for (let i = this.creatures.length - 1; i >= 0; i--) {
-        if (this.creatures[i].containsPoint(mx, my)) {
+      if (this.isDraggingFromSelected && this.selectedCreature) {
+        this.dragMouseX = mx;
+        this.dragMouseY = my;
+        this._didDrag = true;
+
+        // Detectar si estamos sobre otra criatura (para feedback visual)
+        for (const c of this.creatures) {
+          if (c === this.selectedCreature) continue;
+          c.isTargeted = c.containsPoint(mx, my);
+        }
+
+        this.canvas.style.cursor = 'crosshair';
+      } else {
+        // Hover normal
+        this.canvas.style.cursor = 'default';
+        const underCursor = this._findCreatureAt(mx, my);
+        if (underCursor) {
           this.canvas.style.cursor = 'pointer';
-          break;
         }
       }
     });
 
+    // --- mouseup ---
     this.canvas.addEventListener('mouseup', (e) => {
-      if (this.draggedCreature) {
-        // Check if it was a quick click (no significant drag)
+      if (this.selectedCreature) {
         const rect = this.canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
-        const dx = mx - this._dragStartPos.x;
-        const dy = my - this._dragStartPos.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
 
-        if (dist < 10) {
-          // Was a click, not a drag — play single creature sound
-          this.draggedCreature.onClick(this.audio);
-          this.soundWaves.push(new SoundWave(
-            this.draggedCreature.x,
-            this.draggedCreature.y,
-            this.draggedCreature.colors.wave
-          ));
-          // Gentle push to nearby particles
-          for (const p of this.particles) {
-            const pd = p.x - this.draggedCreature.x;
-            const pdy = p.y - this.draggedCreature.y;
-            const pdist = Math.sqrt(pd * pd + pdy * pdy);
-            if (pdist < 200 && pdist > 0) {
-              p.speedX += (pd / pdist) * 0.5;
-              p.speedY += (pdy / pdist) * 0.5;
-            }
-          }
+        // Verificar si soltamos sobre otra criatura
+        const targetCreature = this._findCreatureAt(mx, my);
+        if (targetCreature && targetCreature !== this.selectedCreature) {
+          this._createConnection(this.selectedCreature, targetCreature);
+        } else if (this._didDrag) {
+          // Arrastró al vacío → eliminar todas sus conexiones
+          this._removeConnectionsForCreature(this.selectedCreature);
         }
 
-        this.draggedCreature.dragEnd();
-        this.draggedCreature = null;
-        this._dragStartPos = null;
+        // Limpiar estado de selección
+        this.selectedCreature.isSelected = false;
+        this.selectedCreature = null;
+        this.isDraggingFromSelected = false;
+        this._didDrag = false;
+        this.dragMouseX = undefined;
+        this.dragMouseY = undefined;
+
+        // Limpiar targeted de todas las criaturas
+        for (const c of this.creatures) {
+          c.isTargeted = false;
+        }
       }
     });
 
+    // --- mouseleave ---
     this.canvas.addEventListener('mouseleave', () => {
-      if (this.draggedCreature) {
-        this.draggedCreature.dragEnd();
-        this.draggedCreature = null;
-        this._dragStartPos = null;
+      if (this.selectedCreature) {
+        this.selectedCreature.isSelected = false;
+        this.selectedCreature = null;
+        this.isDraggingFromSelected = false;
+        this._didDrag = false;
+        this.dragMouseX = undefined;
+        this.dragMouseY = undefined;
+
+        for (const c of this.creatures) {
+          c.isTargeted = false;
+        }
       }
       this.mouseX = undefined;
       this.mouseY = undefined;
     });
 
-    // Resize
+    // --- Resize ---
     window.addEventListener('resize', () => {
       this._resize();
       this._initParticles();
     });
 
-    // Info button
+    // --- Info button ---
     document.getElementById('info-btn').addEventListener('click', () => {
       const overlay = document.getElementById('overlay');
       overlay.classList.toggle('hidden');
     });
+
+    // --- Rhythm button ---
+    document.getElementById('rhythm-btn').addEventListener('click', () => {
+      if (!this.audio.initialized) {
+        this.audio.init();
+        document.getElementById('overlay').classList.add('hidden');
+      }
+      this._generateRandomRhythmPattern();
+    });
+
+    // --- Help button (dropdown instructions) ---
+    const helpBtn = document.getElementById('help-btn');
+    const helpPanel = document.getElementById('help-panel');
+    const helpOverlay = document.getElementById('help-overlay');
+    let helpOpen = false;
+
+    const closeHelp = () => {
+      helpOpen = false;
+      helpBtn.classList.remove('active');
+      helpPanel.classList.remove('visible');
+      helpOverlay.style.pointerEvents = 'none';
+    };
+
+    const openHelp = () => {
+      helpOpen = true;
+      helpBtn.classList.add('active');
+      helpPanel.classList.add('visible');
+      helpOverlay.style.pointerEvents = 'all';
+    };
+
+    helpBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (helpOpen) {
+        closeHelp();
+      } else {
+        openHelp();
+      }
+    });
+
+    helpOverlay.addEventListener('click', closeHelp);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && helpOpen) closeHelp();
+    });
+
+    // Close help panel on window resize
+    window.addEventListener('resize', () => {
+      if (helpOpen) closeHelp();
+    });
+
+    // --- Tempo slider ---
+    const tempoSlider = document.getElementById('tempo-slider');
+    const tempoLabel = document.getElementById('tempo-label');
+
+    tempoSlider.addEventListener('input', () => {
+      const bpm = parseInt(tempoSlider.value);
+      this._rhythmBpm = bpm;
+      tempoLabel.querySelector('.bpm-value').textContent = bpm;
+    });
   }
 
-  // Check overlaps between the dragged creature and others, playing group sounds
-  _checkDragOverlaps() {
-    if (!this.draggedCreature) return;
-
-    const now = performance.now();
-    const cooldown = 450; // ms between group sound triggers
-
-    // Find all creatures overlapping with the dragged one
-    const overlapping = [this.draggedCreature];
-    for (const c of this.creatures) {
-      if (c === this.draggedCreature) continue;
-      if (this.draggedCreature.overlapsWith(c)) {
-        overlapping.push(c);
+  _generateRandomRhythmPattern() {
+    const btn = document.getElementById('rhythm-btn');
+    const tempoControl = document.getElementById('tempo-control');
+    if (this._rhythmActive) {
+      if (this._rhythmTimer) {
+        cancelAnimationFrame(this._rhythmTimer);
+        this._rhythmTimer = null;
       }
+      this._rhythmActive = false;
+      btn.classList.remove('playing');
+      tempoControl.classList.remove('visible');
+      return;
     }
 
-    // Also check for chain overlaps (creatures touching creatures that touch dragged one)
-    let changed = true;
-    while (changed) {
-      changed = false;
-      for (const c of this.creatures) {
-        if (overlapping.includes(c)) continue;
-        for (const o of overlapping) {
-          if (c.overlapsWith(o)) {
-            overlapping.push(c);
-            changed = true;
-            break;
-          }
+    const ctx = this.audio.ctx;
+    if (!ctx) return;
+
+    this._rhythmActive = true;
+    btn.classList.add('playing');
+    tempoControl.classList.add('visible');
+
+    // --- Generar patrón de percusión aleatorio ---
+    // Usar BPM actual del slider
+    const bpm = this._rhythmBpm;
+    // stepDuration se recalculará en cada iteración del loop para soportar cambios en tiempo real
+    const beatsPerBar = 16;
+    const numBars = 2 + Math.floor(Math.random() * 3);
+    const totalSteps = beatsPerBar * numBars;
+
+    const PERC_TYPES = ['kick', 'snare', 'hihat', 'open-hh', 'clap', 'tom', 'click', 'rimshot'];
+
+    // Generar secuencia de pasos: cada paso tiene un array de { type, accent }
+    const sequence = [];
+    for (let i = 0; i < totalSteps; i++) {
+      const beatInBar = i % beatsPerBar;
+      const stepHits = [];
+
+      // Bombo: en tiempos fuertes y a veces en contratiempos
+      if (beatInBar === 0) {
+        stepHits.push({ type: 'kick', accent: 1.0 });
+        // A veces un segundo bombo en el downbeat
+        if (Math.random() < 0.3) stepHits.push({ type: 'kick', accent: 0.6 });
+      } else if (beatInBar === 8) {
+        if (Math.random() < 0.7) stepHits.push({ type: 'kick', accent: 0.8 });
+      } else if (beatInBar === 4 || beatInBar === 12) {
+        if (Math.random() < 0.4) stepHits.push({ type: 'kick', accent: 0.6 });
+      } else {
+        if (Math.random() < 0.1) stepHits.push({ type: 'kick', accent: 0.4 });
+      }
+
+      // Caja: en tiempos 2 y 4
+      if (beatInBar === 4 || beatInBar === 12) {
+        stepHits.push({ type: 'snare', accent: 0.9 });
+      } else if (Math.random() < 0.08) {
+        stepHits.push({ type: 'snare', accent: 0.5 });
+      }
+
+      // Hi-hat: casi todos los pasos
+      if (Math.random() < 0.85) {
+        if (beatInBar % 2 === 0) {
+          stepHits.push({ type: 'hihat', accent: 0.4 });
+        } else {
+          stepHits.push({ type: 'hihat', accent: 0.25 });
         }
       }
+
+      // Open hi-hat ocasional
+      if (Math.random() < 0.05 + (beatInBar === 0 ? 0.08 : 0)) {
+        stepHits.push({ type: 'open-hh', accent: 0.3 });
+      }
+
+      // Claps ocasionales
+      if (Math.random() < 0.06 && (beatInBar % 4 === 2)) {
+        stepHits.push({ type: 'clap', accent: 0.5 });
+      }
+
+      // Toms en fills
+      if (Math.random() < 0.04) {
+        stepHits.push({ type: 'tom', accent: 0.5 });
+      }
+
+      // Clicks y rimshots como adornos
+      if (Math.random() < 0.03) {
+        stepHits.push({ type: 'click', accent: 0.3 });
+      }
+      if (Math.random() < 0.02 && beatInBar % 4 !== 0) {
+        stepHits.push({ type: 'rimshot', accent: 0.4 });
+      }
+
+      sequence.push(stepHits);
     }
 
-    // If overlaps found and cooldown has passed, play all their sounds together
-    if (overlapping.length > 1 && now - this.draggedCreature.lastGroupSoundTime > cooldown) {
-      this.draggedCreature.lastGroupSoundTime = now;
-      for (const c of overlapping) {
-        c.lastGroupSoundTime = now;
-        c.clickAnimation = 1;
-        this.audio.playCreatureSound(c.type, c.x, c.y);
-        this.soundWaves.push(new SoundWave(c.x, c.y, c.colors.wave));
+    let currentStep = 0;
+    let nextTime = ctx.currentTime + 0.05;
+    let lastBpm = bpm;
 
-        // Push nearby particles
-        for (const p of this.particles) {
-          const dx = p.x - c.x;
-          const dy = p.y - c.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 200 && dist > 0) {
-            p.speedX += (dx / dist) * 0.5;
-            p.speedY += (dy / dist) * 0.5;
+    const scheduleLoop = () => {
+      if (!this._rhythmActive) return;
+      const now = ctx.currentTime;
+
+      // Recalcular stepDuration si cambió el BPM (ajuste en tiempo real)
+      const currentBpm = this._rhythmBpm;
+      const stepDuration = 60 / currentBpm / 4;
+
+      // Actualizar lastBpm si cambió (usado solo para tracking)
+      lastBpm = currentBpm;
+
+      while (nextTime < now + 0.25 && currentStep < sequence.length) {
+        const stepHits = sequence[currentStep];
+        if (stepHits.length > 0) {
+          for (const hit of stepHits) {
+            this.audio.playPercussionSound(hit.type, nextTime, hit.accent * 0.7);
           }
+
+          // Registrar beat para efectos visuales
+          this._lastBeatTime = performance.now();
+          this._lastBeatIntensity = Math.max(...stepHits.map(h => h.accent));
+
+          // Ondas visuales: usar posiciones de criaturas al azar para variedad
+          const randomCreature = this.creatures[Math.floor(Math.random() * this.creatures.length)];
+          if (randomCreature) {
+            this.soundWaves.push(new SoundWave(
+              randomCreature.x + (Math.random() - 0.5) * 100,
+              randomCreature.y + (Math.random() - 0.5) * 100,
+              '#ffffff'
+            ));
+          }
+        }
+        nextTime += stepDuration;
+        currentStep++;
+      }
+
+      // Loop infinito: cuando se acaba la secuencia, vuelve al inicio
+      if (currentStep >= sequence.length) {
+        currentStep = 0;
+        this._rhythmLoopCount++;
+        // Cada 4 loops (aprox. cada 4 compases), mutar ligeramente la secuencia
+        if (this._rhythmLoopCount % 4 === 0) {
+          this._mutateSequence(sequence, beatsPerBar);
+        }
+      }
+      this._rhythmTimer = requestAnimationFrame(scheduleLoop);
+    };
+
+    this._rhythmLoopCount = 0;
+    scheduleLoop();
+  }
+
+  _mutateSequence(sequence, beatsPerBar) {
+    const PERC_TYPES = ['kick', 'snare', 'hihat', 'open-hh', 'clap', 'tom', 'click', 'rimshot'];
+
+    for (let i = 0; i < sequence.length; i++) {
+      const stepHits = sequence[i];
+      const beatInBar = i % beatsPerBar;
+
+      // --- 1. Añadir un hit aleatorio (10% de los pasos) ---
+      if (Math.random() < 0.10) {
+        const newType = PERC_TYPES[Math.floor(Math.random() * PERC_TYPES.length)];
+        const accent = 0.2 + Math.random() * 0.4;
+        stepHits.push({ type: newType, accent: parseFloat(accent.toFixed(2)) });
+      }
+
+      // --- 2. Eliminar un hit aleatorio (8% de los pasos, pero nunca dejar el paso vacío si era el único) ---
+      if (stepHits.length > 1 && Math.random() < 0.08) {
+        const removeIdx = Math.floor(Math.random() * stepHits.length);
+        stepHits.splice(removeIdx, 1);
+      }
+
+      // --- 3. Cambiar el tipo de un hit (5% de los pasos) ---
+      if (stepHits.length > 0 && Math.random() < 0.05) {
+        const changeIdx = Math.floor(Math.random() * stepHits.length);
+        const oldType = stepHits[changeIdx].type;
+        let newType;
+        do {
+          newType = PERC_TYPES[Math.floor(Math.random() * PERC_TYPES.length)];
+        } while (newType === oldType);
+        stepHits[changeIdx].type = newType;
+      }
+
+      // --- 4. Desplazar ligeramente el accent de un hit (6% de los pasos) ---
+      if (stepHits.length > 0 && Math.random() < 0.06) {
+        const accentIdx = Math.floor(Math.random() * stepHits.length);
+        const shift = (Math.random() - 0.5) * 0.3;
+        stepHits[accentIdx].accent = Math.max(0.1, Math.min(1.0, stepHits[accentIdx].accent + shift));
+      }
+
+      // --- 5. Intercambiar hits entre dos pasos adyacentes (3%) ---
+      if (i < sequence.length - 1 && Math.random() < 0.03) {
+        const nextHits = sequence[i + 1];
+        if (stepHits.length > 0 && nextHits.length > 0) {
+          const idxA = Math.floor(Math.random() * stepHits.length);
+          const idxB = Math.floor(Math.random() * nextHits.length);
+          // Intercambiar los objetos hit completos
+          const temp = stepHits[idxA];
+          stepHits[idxA] = nextHits[idxB];
+          nextHits[idxB] = temp;
         }
       }
     }
@@ -946,6 +1921,10 @@ class App {
 
     // --- 1. Dark shifting base gradient ---
     const baseHue = 270 + Math.sin(t * 0.04) * 15;
+    // Brillo extra cuando hay pulso rítmico
+    const bgPulse = this._rhythmPulse * 0.04 + this._rhythmSubBeat * 0.02;
+    const lightness = 0.14 + bgPulse;
+    const chroma = 0.04 + bgPulse * 2;
     const grad = ctx.createRadialGradient(
       w * 0.5 + Math.sin(t * 0.12) * w * 0.15,
       h * 0.3 + Math.cos(t * 0.09) * h * 0.1,
@@ -953,8 +1932,8 @@ class App {
       w * 0.5, h * 0.5,
       Math.max(w, h) * 0.85
     );
-    grad.addColorStop(0, `oklch(0.14 0.04 ${baseHue + 8})`);
-    grad.addColorStop(0.5, `oklch(0.07 0.025 ${baseHue})`);
+    grad.addColorStop(0, `oklch(${lightness} ${chroma} ${baseHue + 8})`);
+    grad.addColorStop(0.5, `oklch(${lightness * 0.5} ${chroma * 0.6} ${baseHue})`);
     grad.addColorStop(1, `oklch(0.02 0.01 ${baseHue - 15})`);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, w, h);
@@ -978,16 +1957,18 @@ class App {
         const hue = 275 + Math.sin(phase * 0.25) * 25;
         const alpha = 0.04 + Math.sin(phase * 0.4) * 0.025;
         const rot = t * 0.06 + c * 0.15 + r * 0.12;
-        const size = cellSize * 0.34 * (0.8 + Math.sin(phase * 0.5) * 0.2);
+        // Pulso rítmico: hexágonos más brillantes y más grandes en el beat
+        const hexPulse = this._rhythmPulse * (0.6 + Math.sin(phase * 2 + t * 2) * 0.4);
+        const size = cellSize * 0.34 * (0.8 + Math.sin(phase * 0.5) * 0.2) * (1 + hexPulse * 0.3);
 
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(rot);
-        ctx.globalAlpha = Math.max(0, alpha);
-        ctx.strokeStyle = `oklch(0.28 0.055 ${hue})`;
-        ctx.lineWidth = 0.8;
+        ctx.globalAlpha = Math.max(0, alpha + hexPulse * 0.12);
+        const pulseSize = 1 + hexPulse * 0.25;
+        ctx.strokeStyle = `oklch(${0.28 + hexPulse * 0.15} ${0.055 + hexPulse * 0.03} ${hue})`;
+        ctx.lineWidth = 0.8 + hexPulse * 1.2;
 
-        // Outer hexagon
         ctx.beginPath();
         for (let i = 0; i < 6; i++) {
           const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
@@ -998,7 +1979,6 @@ class App {
         ctx.closePath();
         ctx.stroke();
 
-        // Inner triangle (inverted rotation)
         ctx.rotate(Math.PI);
         ctx.globalAlpha *= 0.5;
         ctx.beginPath();
@@ -1015,7 +1995,7 @@ class App {
       }
     }
 
-    // --- 3. Drifting concentric rings (mandala effect) ---
+    // --- 3. Drifting concentric rings ---
     for (let i = 0; i < 4; i++) {
       const ringRadius = 50 + i * 55 + Math.sin(t * 0.12 + i * 1.3) * 15;
       const rx = w * 0.5 + Math.sin(t * 0.03 + i * 1.4) * w * 0.22;
@@ -1030,7 +2010,7 @@ class App {
       ctx.restore();
     }
 
-    // --- 4. Subtle rotating radial lines (kaleidoscopic) ---
+    // --- 4. Subtle rotating radial lines ---
     const numLines = 16;
     const lineBaseRot = t * 0.02;
     ctx.save();
@@ -1049,47 +2029,193 @@ class App {
       ctx.stroke();
     }
     ctx.restore();
-    ctx.restore(); // restore global state from save() at start of _drawBackground
+    ctx.restore();
   }
 
   _update() {
-    // Update creatures
     for (const c of this.creatures) {
       c.update(this.w, this.h, this.mouseX, this.mouseY);
     }
 
-    // Update particles
+    // --- Creature-to-creature collision ---
+    const creatures = this.creatures;
+    for (let i = 0; i < creatures.length; i++) {
+      for (let j = i + 1; j < creatures.length; j++) {
+        const a = creatures[i];
+        const b = creatures[j];
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const minDist = (a.currentSize + b.currentSize) * 0.85;
+
+        if (dist < minDist && dist > 0.01) {
+          const overlap = minDist - dist;
+          const nx = dx / dist;
+          const ny = dy / dist;
+
+          // Separar equitativamente
+          const push = overlap * 0.5;
+          a.x -= nx * push;
+          a.y -= ny * push;
+          b.x += nx * push;
+          b.y += ny * push;
+
+          // Intercambiar velocidades a lo largo de la normal (rebote elástico suave)
+          const relVx = b.vx - a.vx;
+          const relVy = b.vy - a.vy;
+          const relVn = relVx * nx + relVy * ny;
+
+          if (relVn < 0) {
+            const restitution = 0.5;
+            const impulse = -(1 + restitution) * relVn / 2;
+            a.vx -= impulse * nx;
+            a.vy -= impulse * ny;
+            b.vx += impulse * nx;
+            b.vy += impulse * ny;
+          }
+        }
+      }
+    }
+
+    // Calcular pulso rítmico
+    if (this._lastBeatTime > 0) {
+      const elapsed = performance.now() - this._lastBeatTime;
+      this._rhythmPulse = Math.max(0, 1 - elapsed / 300);
+      this._rhythmSubBeat = Math.max(0, 1 - elapsed / 150) * 0.5;
+    } else {
+      this._rhythmPulse = 0;
+      this._rhythmSubBeat = 0;
+    }
+
     for (const p of this.particles) {
       p.update(this.w, this.h);
     }
 
-    // Update sound waves
     this.soundWaves = this.soundWaves.filter(w => w.update());
   }
 
   _draw() {
     this._drawBackground();
 
-    // Draw particles (behind creatures)
+    // Partículas (con pulso rítmico)
+    const rhythmBoost = 1 + this._rhythmPulse * 1.5 + this._rhythmSubBeat;
     for (const p of this.particles) {
-      p.draw(this.ctx);
+      const ctx = this.ctx;
+      ctx.save();
+      const baseAlpha = p.opacity * p.life;
+      ctx.globalAlpha = (this._rhythmPulse > 0.01) ?
+        Math.min(1, baseAlpha * rhythmBoost) : baseAlpha;
+      ctx.fillStyle = '#c084fc';
+      ctx.shadowColor = '#c084fc';
+      ctx.shadowBlur = (this._rhythmPulse > 0.01) ? 6 + this._rhythmPulse * 25 : 6;
+      ctx.beginPath();
+      const sizeBoost = (this._rhythmPulse > 0.01) ?
+        (1 + Math.random() * this._rhythmPulse * 2.5) : 1;
+      ctx.arc(p.x, p.y, p.size * sizeBoost, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
     }
 
-    // Draw non-dragged creatures
+    // Dibujar conexiones (detrás de las criaturas)
+    const now = performance.now();
+    for (const conn of this.connections) {
+      conn.draw(this.ctx, now);
+    }
+
+    // Línea temporal de arrastre (desde criatura seleccionada al mouse)
+    if (this.selectedCreature && this.isDraggingFromSelected && this.dragMouseX !== undefined) {
+      const ctx = this.ctx;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(240, 230, 255, 0.3)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 8]);
+      ctx.shadowColor = 'rgba(192, 132, 252, 0.4)';
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.moveTo(this.selectedCreature.x, this.selectedCreature.y);
+      ctx.lineTo(this.dragMouseX, this.dragMouseY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
+    // Criaturas
     for (const c of this.creatures) {
-      if (c.isDragging) continue;
       c.draw(this.ctx);
     }
 
-    // Draw dragged creature on top (so it's always visible)
-    if (this.draggedCreature) {
-      this.draggedCreature.draw(this.ctx);
-    }
-
-    // Draw sound waves (on top)
+    // Ondas sonoras
     for (const w of this.soundWaves) {
       w.draw(this.ctx);
     }
+
+    // Pulsación rítmica global (overlay de flash)
+    this._drawRhythmPulse();
+  }
+
+  _drawRhythmPulse() {
+    const ctx = this.ctx;
+    const w = this.w;
+    const h = this.h;
+    const pulse = this._rhythmPulse;
+    const sub = this._rhythmSubBeat;
+
+    if (pulse < 0.005 && sub < 0.005) return;
+
+    const intensity = Math.max(pulse * 0.8 + sub * 0.3, 0);
+
+    // --- 1. Flash radial desde el centro ---
+    const flashGrad = ctx.createRadialGradient(w * 0.5, h * 0.5, 0, w * 0.5, h * 0.5, Math.max(w, h) * 0.6);
+    flashGrad.addColorStop(0, `rgba(192, 132, 252, ${intensity * 0.08})`);
+    flashGrad.addColorStop(0.5, `rgba(103, 232, 249, ${intensity * 0.04})`);
+    flashGrad.addColorStop(1, 'rgba(192, 132, 252, 0)');
+    ctx.save();
+    ctx.fillStyle = flashGrad;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+
+    // --- 2. Anillo expansivo desde el centro ---
+    const ringProgress = 1 - pulse; // 0 → 1
+    const ringRadius = ringProgress * Math.max(w, h) * 0.5;
+    ctx.save();
+    ctx.globalAlpha = intensity * 0.2;
+    ctx.strokeStyle = 'rgba(192, 132, 252, 0.6)';
+    ctx.lineWidth = 4 * intensity;
+    ctx.shadowColor = 'rgba(192, 132, 252, 0.5)';
+    ctx.shadowBlur = 20 * intensity;
+    ctx.beginPath();
+    ctx.arc(w * 0.5, h * 0.5, ringRadius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Segundo anillo más sutil
+    ctx.globalAlpha = intensity * 0.08;
+    ctx.lineWidth = 2;
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.arc(w * 0.5, h * 0.5, ringRadius * 0.6, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    // --- 3. Líneas radiales pulsantes ---
+    ctx.save();
+    ctx.globalAlpha = intensity * 0.06;
+    ctx.strokeStyle = 'rgba(240, 230, 255, 0.5)';
+    ctx.lineWidth = 1.5 * intensity;
+    ctx.shadowColor = 'rgba(192, 132, 252, 0.3)';
+    ctx.shadowBlur = 8;
+    const numRays = 12;
+    for (let i = 0; i < numRays; i++) {
+      const angle = (i / numRays) * Math.PI * 2 + performance.now() * 0.0005;
+      const len = ringRadius * 0.4;
+      ctx.beginPath();
+      ctx.moveTo(w * 0.5, h * 0.5);
+      ctx.lineTo(
+        w * 0.5 + Math.cos(angle) * len,
+        h * 0.5 + Math.sin(angle) * len
+      );
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   _loop() {
@@ -1100,11 +2226,10 @@ class App {
 }
 
 // =============================================================================
-// 6. INIT
+// 7. INIT
 // =============================================================================
 document.addEventListener('DOMContentLoaded', () => {
   const app = new App();
-  // Debug access
   window.__app = app;
 });
 </script>
