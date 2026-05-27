@@ -942,8 +942,12 @@ class AmbientParticle {
     ctx.save();
     ctx.globalAlpha = this.opacity * this.life;
     ctx.fillStyle = '#c084fc';
-    ctx.shadowColor = '#c084fc';
-    ctx.shadowBlur = 6;
+    // Pequeño círculo de glow simulado sin shadowBlur (mucho más rápido)
+    ctx.globalAlpha = (this.opacity * this.life) * 0.3;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size * 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = this.opacity * this.life;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
     ctx.fill();
@@ -979,7 +983,7 @@ class SoundWave {
     ctx.strokeStyle = this.color;
     ctx.lineWidth = 1.5;
     ctx.shadowColor = this.color;
-    ctx.shadowBlur = 15;
+    ctx.shadowBlur = 8;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.stroke();
@@ -1147,7 +1151,8 @@ class Creature {
   draw(ctx) {
     const s = this.currentSize;
     const alpha = Math.min(1, this.age / 40);
-    const time = performance.now() * 0.001;
+    const now = performance.now();
+    const time = now * 0.001;
 
     const blobParams = {
       circle:   { points: 7, wobble: 0.28, lobes: 3 },
@@ -1177,7 +1182,7 @@ class Creature {
     // --- Main organic blob ---
     ctx.save();
     ctx.shadowColor = this.colors.glow;
-    ctx.shadowBlur = this.isSelected ? 40 : (this.hovered ? 30 : 15);
+    ctx.shadowBlur = this.isSelected ? 18 : (this.hovered ? 12 : 6);
     ctx.globalAlpha = alpha * (this.isSelected ? 0.75 : (this.hovered ? 0.6 : 0.5));
     ctx.translate(this.x, this.y);
     ctx.rotate(this.rotation);
@@ -1221,11 +1226,11 @@ class Creature {
     // --- Selected indicator (pulsing ring) ---
     if (this.isSelected) {
       ctx.save();
-      ctx.globalAlpha = 0.4 + Math.sin(performance.now() * 0.004) * 0.15;
+      ctx.globalAlpha = 0.4 + Math.sin(now * 0.004) * 0.15;
       ctx.strokeStyle = '#f0e6ff';
       ctx.lineWidth = 1.5;
       ctx.shadowColor = '#c084fc';
-      ctx.shadowBlur = 25;
+      ctx.shadowBlur = 12;
       ctx.translate(this.x, this.y);
       ctx.rotate(this.rotation);
       const ringPts = this._generateBlobPoints(s * 1.15, { ...bp, wobble: bp.wobble * 0.5 }, time + 0.8);
@@ -1237,11 +1242,11 @@ class Creature {
     // --- Targeted indicator ---
     if (this.isTargeted) {
       ctx.save();
-      ctx.globalAlpha = 0.3 + Math.sin(performance.now() * 0.005) * 0.1;
+      ctx.globalAlpha = 0.3 + Math.sin(now * 0.005) * 0.1;
       ctx.strokeStyle = this.colors.glow;
       ctx.lineWidth = 1;
       ctx.shadowColor = this.colors.glow;
-      ctx.shadowBlur = 20;
+      ctx.shadowBlur = 10;
       ctx.translate(this.x, this.y);
       ctx.rotate(this.rotation);
       const ringPts = this._generateBlobPoints(s * 1.1, { ...bp, wobble: bp.wobble * 0.5 }, time + 0.8);
@@ -1253,11 +1258,11 @@ class Creature {
     // --- Hover indicator ---
     if (this.hovered && !this.isSelected && !this.isTargeted) {
       ctx.save();
-      ctx.globalAlpha = 0.3 + Math.sin(performance.now() * 0.003) * 0.1;
+      ctx.globalAlpha = 0.3 + Math.sin(now * 0.003) * 0.1;
       ctx.strokeStyle = this.colors.glow;
       ctx.lineWidth = 1;
       ctx.shadowColor = this.colors.glow;
-      ctx.shadowBlur = 20;
+      ctx.shadowBlur = 10;
       ctx.translate(this.x, this.y);
       ctx.rotate(this.rotation);
       const ringPts = this._generateBlobPoints(s * 1.1, { ...bp, wobble: bp.wobble * 0.5 }, time + 0.8);
@@ -1413,7 +1418,7 @@ class Connection {
 
     // --- Sombra brillante ---
     ctx.shadowColor = 'rgba(192, 132, 252, 0.5)';
-    ctx.shadowBlur = 20 + pulse * 10;
+    ctx.shadowBlur = 8 + pulse * 4;
 
     // --- Línea principal con gradiente ---
     const grad = ctx.createLinearGradient(ax, ay, bx, by);
@@ -1439,7 +1444,7 @@ class Connection {
     ctx.stroke();
 
     // --- Pequeñas partículas viajando por la línea ---
-    const numParticles = 3;
+    const numParticles = 2;
     for (let i = 0; i < numParticles; i++) {
       const t = ((time * 0.001 * 80 + i / numParticles + this.id) % 1);
       const tt = t;
@@ -1457,7 +1462,7 @@ class Connection {
       ctx.globalAlpha = 0.5 + Math.sin(t * Math.PI) * 0.3;
       ctx.fillStyle = '#f0e6ff';
       ctx.shadowColor = '#c084fc';
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 5;
       ctx.beginPath();
       ctx.arc(ptX, ptY, 2, 0, Math.PI * 2);
       ctx.fill();
@@ -1483,6 +1488,12 @@ class App {
     this.mouseY = undefined;
     this.bgPhase = 0;
     this.animFrame = null;
+
+    // Background cache
+    this._bgCache = document.createElement('canvas');
+    this._bgCacheCtx = this._bgCache.getContext('2d');
+    this._bgCacheDirty = true;
+    this._bgFrameCount = 0;
 
     // Connection state
     this.selectedCreature = null;
@@ -1518,11 +1529,16 @@ class App {
     this.canvas.style.width = this.w + 'px';
     this.canvas.style.height = this.h + 'px';
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // Redimensionar cache de fondo
+    this._bgCache.width = this.w * dpr;
+    this._bgCache.height = this.h * dpr;
+    this._bgCacheDirty = true;
   }
 
   _initParticles() {
     this.particles = [];
-    const count = Math.min(80, Math.floor((this.w * this.h) / 12000));
+    const count = Math.min(50, Math.floor((this.w * this.h) / 16000));
     for (let i = 0; i < count; i++) {
       this.particles.push(new AmbientParticle(this.w, this.h));
     }
@@ -1882,7 +1898,6 @@ class App {
 
     let currentStep = 0;
     let nextTime = ctx.currentTime + 0.05;
-    let lastBpm = bpm;
 
     const scheduleLoop = () => {
       if (!this._rhythmActive) return;
@@ -1891,9 +1906,6 @@ class App {
       // Recalcular stepDuration si cambió el BPM (ajuste en tiempo real)
       const currentBpm = this._rhythmBpm;
       const stepDuration = 60 / currentBpm / 4;
-
-      // Actualizar lastBpm si cambió (usado solo para tracking)
-      lastBpm = currentBpm;
 
       while (nextTime < now + 0.25 && currentStep < sequence.length) {
         const stepHits = sequence[currentStep];
@@ -1991,123 +2003,134 @@ class App {
 
   _drawBackground() {
     this.bgPhase += 0.002;
+    this._bgFrameCount++;
 
-    const ctx = this.ctx;
-    const w = this.w;
-    const h = this.h;
-    const t = this.bgPhase;
+    const dpr = window.devicePixelRatio || 1;
 
-    // --- 1. Dark shifting base gradient ---
-    const baseHue = 270 + Math.sin(t * 0.04) * 15;
-    // Brillo extra cuando hay pulso rítmico
-    const bgPulse = this._rhythmPulse * 0.04 + this._rhythmSubBeat * 0.02;
-    const lightness = 0.14 + bgPulse;
-    const chroma = 0.04 + bgPulse * 2;
-    const grad = ctx.createRadialGradient(
-      w * 0.5 + Math.sin(t * 0.12) * w * 0.15,
-      h * 0.3 + Math.cos(t * 0.09) * h * 0.1,
-      0,
-      w * 0.5, h * 0.5,
-      Math.max(w, h) * 0.85
-    );
-    grad.addColorStop(0, `oklch(${lightness} ${chroma} ${baseHue + 8})`);
-    grad.addColorStop(0.5, `oklch(${lightness * 0.5} ${chroma * 0.6} ${baseHue})`);
-    grad.addColorStop(1, `oklch(0.02 0.01 ${baseHue - 15})`);
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, w, h);
+    // Reconstruir fondo cachead cada 8 frames (los cambios son muy sutiles)
+    if (this._bgCacheDirty || this._bgFrameCount % 8 === 0) {
+      this._bgCacheDirty = false;
 
-    ctx.save();
+      const ctx = this._bgCacheCtx;
+      const w = this.w;
+      const h = this.h;
+      const t = this.bgPhase;
 
-    // --- 2. Psychedelic hexagonal tessellation ---
-    const cellSize = 85 + Math.sin(t * 0.06) * 12;
-    const ox = (Math.sin(t * 0.02) * 0.5 + 0.5) * cellSize;
-    const oy = (Math.cos(t * 0.025) * 0.5 + 0.5) * cellSize;
-    const cols = Math.ceil(w / cellSize) + 2;
-    const rows = Math.ceil(h / cellSize) + 2;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
 
-    ctx.lineCap = 'round';
+      // --- 1. Dark shifting base gradient ---
+      const baseHue = 270 + Math.sin(t * 0.04) * 15;
+      const bgPulse = this._rhythmPulse * 0.04 + this._rhythmSubBeat * 0.02;
+      const lightness = 0.14 + bgPulse;
+      const chroma = 0.04 + bgPulse * 2;
+      const grad = ctx.createRadialGradient(
+        w * 0.5 + Math.sin(t * 0.12) * w * 0.15,
+        h * 0.3 + Math.cos(t * 0.09) * h * 0.1,
+        0,
+        w * 0.5, h * 0.5,
+        Math.max(w, h) * 0.85
+      );
+      grad.addColorStop(0, `oklch(${lightness} ${chroma} ${baseHue + 8})`);
+      grad.addColorStop(0.5, `oklch(${lightness * 0.5} ${chroma * 0.6} ${baseHue})`);
+      grad.addColorStop(1, `oklch(0.02 0.01 ${baseHue - 15})`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
 
-    for (let r = -1; r < rows; r++) {
-      for (let c = -1; c < cols; c++) {
-        const cx = c * cellSize + ox;
-        const cy = r * cellSize + oy;
-        const phase = (c * 3.7 + r * 5.3) + t * 0.35;
-        const hue = 275 + Math.sin(phase * 0.25) * 25;
-        const alpha = 0.04 + Math.sin(phase * 0.4) * 0.025;
-        const rot = t * 0.06 + c * 0.15 + r * 0.12;
-        // Pulso rítmico: hexágonos más brillantes y más grandes en el beat
-        const hexPulse = this._rhythmPulse * (0.6 + Math.sin(phase * 2 + t * 2) * 0.4);
-        const size = cellSize * 0.34 * (0.8 + Math.sin(phase * 0.5) * 0.2) * (1 + hexPulse * 0.3);
+      ctx.save();
 
+      // --- 2. Psychedelic hexagonal tessellation ---
+      const cellSize = 85 + Math.sin(t * 0.06) * 12;
+      const ox = (Math.sin(t * 0.02) * 0.5 + 0.5) * cellSize;
+      const oy = (Math.cos(t * 0.025) * 0.5 + 0.5) * cellSize;
+      const cols = Math.ceil(w / cellSize) + 2;
+      const rows = Math.ceil(h / cellSize) + 2;
+
+      ctx.lineCap = 'round';
+
+      for (let r = -1; r < rows; r++) {
+        for (let c = -1; c < cols; c++) {
+          const cx = c * cellSize + ox;
+          const cy = r * cellSize + oy;
+          const phase = (c * 3.7 + r * 5.3) + t * 0.35;
+          const hue = 275 + Math.sin(phase * 0.25) * 25;
+          const alpha = 0.04 + Math.sin(phase * 0.4) * 0.025;
+          const rot = t * 0.06 + c * 0.15 + r * 0.12;
+          const hexPulse = this._rhythmPulse * (0.6 + Math.sin(phase * 2 + t * 2) * 0.4);
+          const size = cellSize * 0.34 * (0.8 + Math.sin(phase * 0.5) * 0.2) * (1 + hexPulse * 0.3);
+
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(rot);
+          ctx.globalAlpha = Math.max(0, alpha + hexPulse * 0.12);
+          ctx.strokeStyle = `oklch(${0.28 + hexPulse * 0.15} ${0.055 + hexPulse * 0.03} ${hue})`;
+          ctx.lineWidth = 0.8 + hexPulse * 1.2;
+
+          ctx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+            const px = Math.cos(a) * size;
+            const py = Math.sin(a) * size;
+            i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.stroke();
+
+          ctx.rotate(Math.PI);
+          ctx.globalAlpha *= 0.5;
+          ctx.beginPath();
+          for (let i = 0; i < 3; i++) {
+            const a = (i / 3) * Math.PI * 2 - Math.PI / 2;
+            const px = Math.cos(a) * size * 0.45;
+            const py = Math.sin(a) * size * 0.45;
+            i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.stroke();
+
+          ctx.restore();
+        }
+      }
+
+      // --- 3. Drifting concentric rings ---
+      for (let i = 0; i < 4; i++) {
+        const ringRadius = 50 + i * 55 + Math.sin(t * 0.12 + i * 1.3) * 15;
+        const rx = w * 0.5 + Math.sin(t * 0.03 + i * 1.4) * w * 0.22;
+        const ry = h * 0.5 + Math.cos(t * 0.028 + i * 1.1) * h * 0.18;
         ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(rot);
-        ctx.globalAlpha = Math.max(0, alpha + hexPulse * 0.12);
-        const pulseSize = 1 + hexPulse * 0.25;
-        ctx.strokeStyle = `oklch(${0.28 + hexPulse * 0.15} ${0.055 + hexPulse * 0.03} ${hue})`;
-        ctx.lineWidth = 0.8 + hexPulse * 1.2;
-
+        ctx.globalAlpha = 0.02;
+        ctx.strokeStyle = `oklch(0.32 0.04 ${280 + i * 12 + Math.sin(t * 0.05 + i) * 10})`;
+        ctx.lineWidth = 0.6;
         ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-          const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
-          const px = Math.cos(a) * size;
-          const py = Math.sin(a) * size;
-          i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-        }
-        ctx.closePath();
+        ctx.arc(rx, ry, ringRadius, 0, Math.PI * 2);
         ctx.stroke();
-
-        ctx.rotate(Math.PI);
-        ctx.globalAlpha *= 0.5;
-        ctx.beginPath();
-        for (let i = 0; i < 3; i++) {
-          const a = (i / 3) * Math.PI * 2 - Math.PI / 2;
-          const px = Math.cos(a) * size * 0.45;
-          const py = Math.sin(a) * size * 0.45;
-          i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-        }
-        ctx.closePath();
-        ctx.stroke();
-
         ctx.restore();
       }
-    }
 
-    // --- 3. Drifting concentric rings ---
-    for (let i = 0; i < 4; i++) {
-      const ringRadius = 50 + i * 55 + Math.sin(t * 0.12 + i * 1.3) * 15;
-      const rx = w * 0.5 + Math.sin(t * 0.03 + i * 1.4) * w * 0.22;
-      const ry = h * 0.5 + Math.cos(t * 0.028 + i * 1.1) * h * 0.18;
+      // --- 4. Subtle rotating radial lines ---
+      const numLines = 16;
+      const lineBaseRot = t * 0.02;
       ctx.save();
-      ctx.globalAlpha = 0.02;
-      ctx.strokeStyle = `oklch(0.32 0.04 ${280 + i * 12 + Math.sin(t * 0.05 + i) * 10})`;
-      ctx.lineWidth = 0.6;
-      ctx.beginPath();
-      ctx.arc(rx, ry, ringRadius, 0, Math.PI * 2);
-      ctx.stroke();
+      ctx.globalAlpha = 0.015;
+      ctx.strokeStyle = `oklch(0.3 0.04 ${280 + Math.sin(t * 0.03) * 15})`;
+      ctx.lineWidth = 0.4;
+      for (let i = 0; i < numLines; i++) {
+        const angle = (i / numLines) * Math.PI * 2 + lineBaseRot;
+        const len = Math.min(w, h) * 0.6 + Math.sin(t * 0.1 + i * 2) * 40;
+        ctx.beginPath();
+        ctx.moveTo(w * 0.5, h * 0.5);
+        ctx.lineTo(
+          w * 0.5 + Math.cos(angle) * len,
+          h * 0.5 + Math.sin(angle) * len
+        );
+        ctx.stroke();
+      }
+      ctx.restore();
       ctx.restore();
     }
 
-    // --- 4. Subtle rotating radial lines ---
-    const numLines = 16;
-    const lineBaseRot = t * 0.02;
-    ctx.save();
-    ctx.globalAlpha = 0.015;
-    ctx.strokeStyle = `oklch(0.3 0.04 ${280 + Math.sin(t * 0.03) * 15})`;
-    ctx.lineWidth = 0.4;
-    for (let i = 0; i < numLines; i++) {
-      const angle = (i / numLines) * Math.PI * 2 + lineBaseRot;
-      const len = Math.min(w, h) * 0.6 + Math.sin(t * 0.1 + i * 2) * 40;
-      ctx.beginPath();
-      ctx.moveTo(w * 0.5, h * 0.5);
-      ctx.lineTo(
-        w * 0.5 + Math.cos(angle) * len,
-        h * 0.5 + Math.sin(angle) * len
-      );
-      ctx.stroke();
-    }
-    ctx.restore();
-    ctx.restore();
+    // Dibujar fondo cachead al canvas principal (sin save/restore extra)
+    this.ctx.drawImage(this._bgCache, 0, 0);
   }
 
   _update() {
@@ -2177,21 +2200,26 @@ class App {
 
     // Partículas (con pulso rítmico)
     const rhythmBoost = 1 + this._rhythmPulse * 1.5 + this._rhythmSubBeat;
+    const hasPulse = this._rhythmPulse > 0.01;
     for (const p of this.particles) {
       const ctx = this.ctx;
-      ctx.save();
       const baseAlpha = p.opacity * p.life;
-      ctx.globalAlpha = (this._rhythmPulse > 0.01) ?
-        Math.min(1, baseAlpha * rhythmBoost) : baseAlpha;
-      ctx.fillStyle = '#c084fc';
-      ctx.shadowColor = '#c084fc';
-      ctx.shadowBlur = (this._rhythmPulse > 0.01) ? 6 + this._rhythmPulse * 25 : 6;
-      ctx.beginPath();
-      const sizeBoost = (this._rhythmPulse > 0.01) ?
-        (1 + Math.random() * this._rhythmPulse * 2.5) : 1;
-      ctx.arc(p.x, p.y, p.size * sizeBoost, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+      const finalAlpha = hasPulse ? Math.min(1, baseAlpha * rhythmBoost) : baseAlpha;
+      // Glow simulado: círculo grande tenue
+      if (finalAlpha > 0.02) {
+        ctx.save();
+        ctx.globalAlpha = finalAlpha * 0.25;
+        ctx.fillStyle = '#c084fc';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = finalAlpha;
+        const sizeBoost = hasPulse ? (1 + Math.random() * this._rhythmPulse * 2.5) : 1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * sizeBoost, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
     }
 
     // Dibujar conexiones (detrás de las criaturas)
