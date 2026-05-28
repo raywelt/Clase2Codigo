@@ -87,6 +87,57 @@
     border-color: rgba(240, 230, 255, 0.25);
   }
 
+  /* Selector de escala - abajo a la derecha */
+  #scale-selector {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 10;
+    pointer-events: all;
+  }
+
+  #scale-selector select {
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(13, 2, 33, 0.6);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(240, 230, 255, 0.12);
+    color: rgba(240, 230, 255, 0.6);
+    padding: 6px 28px 6px 12px;
+    border-radius: 14px;
+    font-size: 0.72rem;
+    font-family: 'Georgia', serif;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.4s ease;
+    min-width: 110px;
+    text-align: left;
+  }
+
+  #scale-selector select:hover {
+    background: rgba(13, 2, 33, 0.8);
+    border-color: rgba(240, 230, 255, 0.25);
+    color: rgba(240, 230, 255, 0.85);
+  }
+
+  #scale-selector::after {
+    content: '♫';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.55rem;
+    color: rgba(192, 132, 252, 0.4);
+    pointer-events: none;
+  }
+
+  #scale-selector select option {
+    background: #1a0a30;
+    color: rgba(240, 230, 255, 0.8);
+    padding: 4px;
+  }
+
   /* Control de tempo - slider vertical */
   #tempo-control {
     position: fixed;
@@ -460,6 +511,15 @@
     <p style="font-size: clamp(0.7rem, 1.1vw, 0.95rem); opacity: 0.5; animation-delay: 2s;">cada conexión crea un arpegio en loop  ·  conexiones ilimitadas</p>
   </div>
   <canvas id="canvas"></canvas>
+  <div id="scale-selector">
+    <select id="scale-select">
+      <option value="major">Mayor</option>
+      <option value="minor">menor</option>
+      <option value="pentatonic_major" selected>Pent. Mayor</option>
+      <option value="pentatonic_minor">Pent. menor</option>
+      <option value="blues">Pent. Blues</option>
+    </select>
+  </div>
   <button id="info-btn">♫  conecta las formas  ♫</button>
   <button id="rhythm-btn" aria-label="Generar ritmo aleatorio"></button>
   <div id="rhythm-label">Ritmo</div>
@@ -496,7 +556,38 @@
 
 <script>
 // =============================================================================
-// 1. AUDIO SYSTEM - Síntesis de sonido con Web Audio API
+// 1. SCALES - Definiciones de escalas musicales
+// =============================================================================
+const SCALES = {
+  major: {
+    name: 'Mayor',
+    // C4, D4, E4, F4, G4, A4, B4, C5, D5, E5, F5, G5, A5, B5, C6
+    notes: [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33, 659.25, 698.46, 783.99, 880.00, 987.77, 1046.50]
+  },
+  minor: {
+    name: 'menor',
+    // C4, D4, Eb4, F4, G4, Ab4, Bb4, C5, D5, Eb5, F5, G5, Ab5, Bb5, C6
+    notes: [261.63, 293.66, 311.13, 349.23, 392.00, 415.30, 466.16, 523.25, 587.33, 622.25, 698.46, 783.99, 830.61, 932.33, 1046.50]
+  },
+  pentatonic_major: {
+    name: 'Pent. Mayor',
+    // C4, D4, E4, G4, A4, C5, D5, E5, G5, A5, C6
+    notes: [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25, 783.99, 880.00, 1046.50]
+  },
+  pentatonic_minor: {
+    name: 'Pent. menor',
+    // C4, Eb4, F4, G4, Bb4, C5, Eb5, F5, G5, Bb5, C6
+    notes: [261.63, 311.13, 349.23, 392.00, 466.16, 523.25, 622.25, 698.46, 783.99, 932.33, 1046.50]
+  },
+  blues: {
+    name: 'Pent. Blues',
+    // C4, Eb4, F4, Gb4, G4, Bb4, C5, Eb5, F5, Gb5, G5, Bb5, C6
+    notes: [261.63, 311.13, 349.23, 369.99, 392.00, 466.16, 523.25, 622.25, 698.46, 739.99, 783.99, 932.33, 1046.50]
+  }
+};
+
+// =============================================================================
+// 2. AUDIO SYSTEM - Síntesis de sonido con Web Audio API
 // =============================================================================
 class AudioSystem {
   constructor() {
@@ -505,6 +596,8 @@ class AudioSystem {
     this.reverbNode = null;
     this.delayNode = null;
     this.initialized = false;
+    // Escala activa por defecto
+    this._currentScale = 'pentatonic_major';
   }
 
   init() {
@@ -549,13 +642,22 @@ class AudioSystem {
     }
   }
 
-  // Escala pentatónica mayor
-  _pentatonicNote(index) {
-    const notes = [
-      261.63, 293.66, 329.63, 392.00, 440.00,
-      523.25, 587.33, 659.25, 783.99, 880.00,
-    ];
-    return notes[index % notes.length];
+  /** Obtener una frecuencia de la escala activa */
+  _getScaleNote(index) {
+    const scale = SCALES[this._currentScale];
+    return scale.notes[index % scale.notes.length];
+  }
+
+  /** Cambiar la escala activa */
+  setScale(key) {
+    if (SCALES[key]) {
+      this._currentScale = key;
+    }
+  }
+
+  /** Obtener la clave de la escala activa */
+  getCurrentScale() {
+    return this._currentScale;
   }
 
   // Índice de nota determinístico por tipo de criatura
@@ -644,7 +746,8 @@ class AudioSystem {
         params = { oscTypes: ['sine'], noteIndex: Math.floor(Math.random() * 7), freqMult: [1], gain: 0.1, attack: 0.05, decay: 0.5 };
     }
 
-    const baseFreq = this._pentatonicNote(params.noteIndex);
+    const baseFreq = this._getScaleNote(params.noteIndex);
+
     const gainNode = ctx.createGain();
     gainNode.gain.value = 0;
 
@@ -1294,6 +1397,8 @@ class Connection {
 
     // División rítmica aleatoria para esta conexión
     this.division = RHYTHM_DIVISIONS[Math.floor(Math.random() * RHYTHM_DIVISIONS.length)];
+    // Nombre corto de la subdivisión
+    this.divisionName = this._divisionName(this.division);
 
     // Arpeggio state
     this.isPlaying = false;
@@ -1308,21 +1413,27 @@ class Connection {
     this.start();
   }
 
+  _divisionName(div) {
+    const names = { 2: 'Dupl', 3: 'Trip', 4: '16th', 6: '16.T', 8: '32nd', 12: '32.T' };
+    return names[div] || `${div}`;
+  }
+
   _generateArpeggioNotes() {
-    const baseA = this.audio._pentatonicNote(this.audio.getNoteIndexForType(this.a.type, 0));
-    const baseB = this.audio._pentatonicNote(this.audio.getNoteIndexForType(this.b.type, 0));
-    // Añadir variación sutil para que cada conexión suene única
-    const varA = this.audio._pentatonicNote(this.audio.getNoteIndexForType(this.a.type, 2));
-    const varB = this.audio._pentatonicNote(this.audio.getNoteIndexForType(this.b.type, 2));
+    // Guardar índices de nota en lugar de frecuencias fijas
+    // para que los arpegios existentes se actualicen al cambiar la escala
+    const baseIdxA = this.audio.getNoteIndexForType(this.a.type, 0);
+    const baseIdxB = this.audio.getNoteIndexForType(this.b.type, 0);
+    const varIdxA = this.audio.getNoteIndexForType(this.a.type, 2);
+    const varIdxB = this.audio.getNoteIndexForType(this.b.type, 2);
     return [
-      { creature: this.a, freq: baseA },
-      { creature: this.b, freq: baseB },
-      { creature: this.a, freq: varA },
-      { creature: this.b, freq: varB },
-      { creature: this.a, freq: baseA * 2 },
-      { creature: this.b, freq: baseB * 2 },
-      { creature: this.a, freq: varA * 2 },
-      { creature: this.b, freq: varB * 2 },
+      { creature: this.a, idx: baseIdxA, oct: 1 },
+      { creature: this.b, idx: baseIdxB, oct: 1 },
+      { creature: this.a, idx: varIdxA, oct: 1 },
+      { creature: this.b, idx: varIdxB, oct: 1 },
+      { creature: this.a, idx: baseIdxA, oct: 2 },
+      { creature: this.b, idx: baseIdxB, oct: 2 },
+      { creature: this.a, idx: varIdxA, oct: 2 },
+      { creature: this.b, idx: varIdxB, oct: 2 },
     ];
   }
 
@@ -1343,11 +1454,13 @@ class Connection {
 
       while (this.nextScheduledTime < now + 0.25) {
         const note = this.notes[this.currentStep % this.notes.length];
+        // Resolver frecuencia en tiempo real desde la escala activa
+        const freq = this.audio._getScaleNote(note.idx) * note.oct;
         // Volumen ligeramente más bajo para evitar saturación con múltiples conexiones
         const gain = Math.max(0.3, 1 - (this.currentStep % 4) * 0.1);
         this.audio.playScheduledNote(
           note.creature.type,
-          note.freq,
+          freq,
           this.nextScheduledTime,
           0.1,
           gain * 0.6
@@ -1442,6 +1555,71 @@ class Connection {
       ctx.fill();
       ctx.restore();
     }
+
+    // --- Indicador de subdivisión rítmica ---
+    // Calcular punto medio de la curva bezier
+    const midT = 0.5;
+    const midOm = 1 - midT;
+    const midX = midOm * midOm * midOm * ax +
+                 3 * midOm * midOm * midT * cp1x +
+                 3 * midOm * midT * midT * cp2x +
+                 midT * midT * midT * bx;
+    const midY = midOm * midOm * midOm * ay +
+                 3 * midOm * midOm * midT * cp1y +
+                 3 * midOm * midT * midT * cp2y +
+                 midT * midT * midT * by;
+
+    // Offset perpendicular a la curva en el punto medio
+    const tangentX = 3 * midOm * midOm * (cp1x - ax) +
+                     6 * midOm * midT * (cp2x - cp1x) +
+                     3 * midT * midT * (bx - cp2x);
+    const tangentY = 3 * midOm * midOm * (cp1y - ay) +
+                     6 * midOm * midT * (cp2y - cp1y) +
+                     3 * midT * midT * (by - cp2y);
+    const tangentLen = Math.sqrt(tangentX * tangentX + tangentY * tangentY);
+    const perpX = tangentLen > 0.01 ? -tangentY / tangentLen : 0;
+    const perpY = tangentLen > 0.01 ? tangentX / tangentLen : 0;
+    const labelOffset = 18;
+    const labelX = midX + perpX * labelOffset;
+    const labelY = midY + perpY * labelOffset;
+
+    // El pulso del arpegio hace brillar la etiqueta
+    const arpPulse = this.isPlaying ? Math.sin(time * 0.004 + this.id * 10) * 0.3 + 0.7 : 0.5;
+
+    ctx.save();
+    ctx.font = '8px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    // Mostrar número + nombre corto (ej: "2 Dupl", "4 16th")
+    const labelText = `${this.division} ${this.divisionName}`;
+    const metrics = ctx.measureText(labelText);
+    const pad = 6;
+    const bw = metrics.width + pad * 2;
+    const bh = 16;
+
+    // Fondo tipo badge (píldora semitransparente)
+    ctx.globalAlpha = 0.4 * arpPulse;
+    ctx.fillStyle = 'rgba(13, 2, 33, 0.75)';
+    ctx.shadowColor = this.a.colors.glow;
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(labelX - bw / 2, labelY, bh / 2, Math.PI / 2, -Math.PI / 2);
+    ctx.arc(labelX + bw / 2, labelY, bh / 2, -Math.PI / 2, Math.PI / 2);
+    ctx.closePath();
+    ctx.fill();
+
+    // Borde sutil
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 0.2 * arpPulse;
+    ctx.strokeStyle = this.a.colors.glow;
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+
+    // Texto
+    ctx.globalAlpha = 0.6 + 0.3 * arpPulse;
+    ctx.fillStyle = '#f0e6ff';
+    ctx.fillText(labelText, labelX, labelY + 0.5);
+    ctx.restore();
 
     ctx.restore();
   }
@@ -1805,6 +1983,12 @@ class App {
       // Guardar el valor por si el audio aún no se ha inicializado
       this.audio._pendingVolume = gainValue;
       volumeLabel.querySelector('.vol-value').textContent = vol;
+    });
+
+    // --- Scale selector ---
+    const scaleSelect = document.getElementById('scale-select');
+    scaleSelect.addEventListener('change', () => {
+      this.audio.setScale(scaleSelect.value);
     });
   }
 
