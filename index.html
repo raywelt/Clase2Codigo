@@ -983,7 +983,7 @@ class SoundWave {
     ctx.strokeStyle = this.color;
     ctx.lineWidth = 1.5;
     ctx.shadowColor = this.color;
-    ctx.shadowBlur = 8;
+    ctx.shadowBlur = 4;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.stroke();
@@ -1092,24 +1092,17 @@ class Creature {
     this.x += this.vx + bobX;
     this.y += this.vy + bobY;
 
-    // --- Edge bouncing (rebote contra bordes) ---
+    // --- Wrap-around (rebote envuelve por el lado opuesto) ---
     const radius = this.currentSize;
-    const bounceEnergy = 0.6;
-    if (this.x - radius < 0) {
-      this.x = radius;
-      this.vx = Math.abs(this.vx) * bounceEnergy;
+    if (this.x + radius < 0) {
+      this.x = w + radius;
+    } else if (this.x - radius > w) {
+      this.x = -radius;
     }
-    if (this.x + radius > w) {
-      this.x = w - radius;
-      this.vx = -Math.abs(this.vx) * bounceEnergy;
-    }
-    if (this.y - radius < 0) {
-      this.y = radius;
-      this.vy = Math.abs(this.vy) * bounceEnergy;
-    }
-    if (this.y + radius > h) {
-      this.y = h - radius;
-      this.vy = -Math.abs(this.vy) * bounceEnergy;
+    if (this.y + radius < 0) {
+      this.y = h + radius;
+    } else if (this.y - radius > h) {
+      this.y = -radius;
     }
 
     // Rotation
@@ -1182,7 +1175,7 @@ class Creature {
     // --- Main organic blob ---
     ctx.save();
     ctx.shadowColor = this.colors.glow;
-    ctx.shadowBlur = this.isSelected ? 18 : (this.hovered ? 12 : 6);
+    ctx.shadowBlur = this.isSelected ? 10 : (this.hovered ? 6 : 3);
     ctx.globalAlpha = alpha * (this.isSelected ? 0.75 : (this.hovered ? 0.6 : 0.5));
     ctx.translate(this.x, this.y);
     ctx.rotate(this.rotation);
@@ -1223,49 +1216,20 @@ class Creature {
     ctx.fill();
     ctx.restore();
 
-    // --- Selected indicator (pulsing ring) ---
-    if (this.isSelected) {
+    // --- Indicator ring (unified: selected, targeted, or hovered) ---
+    const ringType = this.isSelected ? 'selected' : (this.isTargeted ? 'targeted' : (this.hovered ? 'hovered' : null));
+    if (ringType) {
       ctx.save();
-      ctx.globalAlpha = 0.4 + Math.sin(now * 0.004) * 0.15;
-      ctx.strokeStyle = '#f0e6ff';
-      ctx.lineWidth = 1.5;
-      ctx.shadowColor = '#c084fc';
-      ctx.shadowBlur = 12;
+      const ringAlpha = ringType === 'selected' ? (0.4 + Math.sin(now * 0.004) * 0.15) : (0.3 + Math.sin(now * (ringType === 'targeted' ? 0.005 : 0.003)) * 0.1);
+      ctx.globalAlpha = ringAlpha;
+      ctx.strokeStyle = ringType === 'selected' ? '#f0e6ff' : this.colors.glow;
+      ctx.lineWidth = ringType === 'selected' ? 1.5 : 1;
+      ctx.shadowColor = ringType === 'selected' ? '#c084fc' : this.colors.glow;
+      ctx.shadowBlur = 6;
       ctx.translate(this.x, this.y);
       ctx.rotate(this.rotation);
-      const ringPts = this._generateBlobPoints(s * 1.15, { ...bp, wobble: bp.wobble * 0.5 }, time + 0.8);
-      this._drawBlobPath(ctx, ringPts, bp.points);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    // --- Targeted indicator ---
-    if (this.isTargeted) {
-      ctx.save();
-      ctx.globalAlpha = 0.3 + Math.sin(now * 0.005) * 0.1;
-      ctx.strokeStyle = this.colors.glow;
-      ctx.lineWidth = 1;
-      ctx.shadowColor = this.colors.glow;
-      ctx.shadowBlur = 10;
-      ctx.translate(this.x, this.y);
-      ctx.rotate(this.rotation);
-      const ringPts = this._generateBlobPoints(s * 1.1, { ...bp, wobble: bp.wobble * 0.5 }, time + 0.8);
-      this._drawBlobPath(ctx, ringPts, bp.points);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    // --- Hover indicator ---
-    if (this.hovered && !this.isSelected && !this.isTargeted) {
-      ctx.save();
-      ctx.globalAlpha = 0.3 + Math.sin(now * 0.003) * 0.1;
-      ctx.strokeStyle = this.colors.glow;
-      ctx.lineWidth = 1;
-      ctx.shadowColor = this.colors.glow;
-      ctx.shadowBlur = 10;
-      ctx.translate(this.x, this.y);
-      ctx.rotate(this.rotation);
-      const ringPts = this._generateBlobPoints(s * 1.1, { ...bp, wobble: bp.wobble * 0.5 }, time + 0.8);
+      const ringSize = ringType === 'selected' ? s * 1.15 : s * 1.1;
+      const ringPts = this._generateBlobPoints(ringSize, { ...bp, wobble: bp.wobble * 0.5 }, time + 0.8);
       this._drawBlobPath(ctx, ringPts, bp.points);
       ctx.stroke();
       ctx.restore();
@@ -1316,19 +1280,24 @@ class Creature {
 // =============================================================================
 // 5. CONNECTION - Conexión entre dos criaturas con arpegio en loop
 // =============================================================================
+// Divisiones rítmicas disponibles: notesPerBeat (duplets, triplets, n-plets)
+const RHYTHM_DIVISIONS = [2, 3, 4, 6, 8, 12];
+
 class Connection {
-  constructor(a, b, audioSystem) {
+  constructor(a, b, audioSystem, getBpmFn) {
     this.a = a;
     this.b = b;
     this.audio = audioSystem;
+    this.getBpmFn = getBpmFn;
     this.id = Date.now() + Math.random();
     this.creationTime = performance.now();
+
+    // División rítmica aleatoria para esta conexión
+    this.division = RHYTHM_DIVISIONS[Math.floor(Math.random() * RHYTHM_DIVISIONS.length)];
 
     // Arpeggio state
     this.isPlaying = false;
     this.scheduleTimer = null;
-    this.tempo = 100; // BPM
-    this.stepDuration = 60 / this.tempo / 4; // semi-corchea
     this.currentStep = 0;
     this.nextScheduledTime = null;
 
@@ -1367,6 +1336,11 @@ class Connection {
     const scheduleLoop = () => {
       if (!this.isPlaying) return;
       const now = this.audio.ctx.currentTime;
+
+      // Calcular stepDuration en tiempo real desde el BPM global y la división
+      const bpm = this.getBpmFn();
+      const stepDuration = 60 / bpm / this.division;
+
       while (this.nextScheduledTime < now + 0.25) {
         const note = this.notes[this.currentStep % this.notes.length];
         // Volumen ligeramente más bajo para evitar saturación con múltiples conexiones
@@ -1378,7 +1352,7 @@ class Connection {
           0.1,
           gain * 0.6
         );
-        this.nextScheduledTime += this.stepDuration;
+        this.nextScheduledTime += stepDuration;
         this.currentStep++;
       }
       this.scheduleTimer = requestAnimationFrame(scheduleLoop);
@@ -1416,9 +1390,9 @@ class Connection {
 
     ctx.save();
 
-    // --- Sombra brillante ---
+    // --- Sombra brillante (reducida para rendimiento) ---
     ctx.shadowColor = 'rgba(192, 132, 252, 0.5)';
-    ctx.shadowBlur = 8 + pulse * 4;
+    ctx.shadowBlur = 4 + pulse * 2;
 
     // --- Línea principal con gradiente ---
     const grad = ctx.createLinearGradient(ax, ay, bx, by);
@@ -1536,9 +1510,16 @@ class App {
     this._bgCacheDirty = true;
   }
 
+  _isMobileDevice() {
+    return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  }
+
   _initParticles() {
     this.particles = [];
-    const count = Math.min(50, Math.floor((this.w * this.h) / 16000));
+    const isMobile = this._isMobileDevice();
+    const maxParticles = isMobile ? 20 : 50;
+    const divisor = isMobile ? 35000 : 16000;
+    const count = Math.min(maxParticles, Math.floor((this.w * this.h) / divisor));
     for (let i = 0; i < count; i++) {
       this.particles.push(new AmbientParticle(this.w, this.h));
     }
@@ -1546,12 +1527,13 @@ class App {
 
   _initCreatures(count) {
     this.creatures = [];
-    const margin = 160;
-    for (let i = 0; i < count; i++) {
+    const isMobile = this._isMobileDevice();
+    const actualCount = isMobile ? Math.min(count, 8) : count;
+    for (let i = 0; i < actualCount; i++) {
       const type = CREATURE_TYPES[i % CREATURE_TYPES.length];
-      const x = margin + Math.random() * (this.w - margin * 2);
-      const y = margin + Math.random() * (this.h - margin * 2);
-      const size = 56 + Math.random() * 70;
+      const x = Math.random() * this.w;
+      const y = Math.random() * this.h;
+      const size = isMobile ? (40 + Math.random() * 50) : (56 + Math.random() * 70);
       this.creatures.push(new Creature(type, x, y, size));
     }
   }
@@ -1576,8 +1558,8 @@ class App {
       }
     }
 
-    // Crear nueva conexión
-    const conn = new Connection(a, b, this.audio);
+    // Crear nueva conexión (con referencia al BPM global)
+    const conn = new Connection(a, b, this.audio, () => this._rhythmBpm);
     this.connections.push(conn);
 
     // Ondas expansivas de confirmación
@@ -1614,20 +1596,21 @@ class App {
   }
 
   _setupEventListeners() {
-    // --- mousedown ---
-    this.canvas.addEventListener('mousedown', (e) => {
+    const getCanvasPos = (clientX, clientY) => {
+      const rect = this.canvas.getBoundingClientRect();
+      return { x: clientX - rect.left, y: clientY - rect.top };
+    };
+
+    const handlePointerDown = (clientX, clientY) => {
       if (!this.audio.initialized) {
         this.audio.init();
         document.getElementById('overlay').classList.add('hidden');
       }
 
-      const rect = this.canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
+      const { x: mx, y: my } = getCanvasPos(clientX, clientY);
 
       const creature = this._findCreatureAt(mx, my);
       if (creature) {
-        // Seleccionar criatura e iniciar arrastre para conexión
         creature.onClick(this.audio);
         creature.isSelected = true;
         this.selectedCreature = creature;
@@ -1636,13 +1619,10 @@ class App {
         this.dragMouseX = mx;
         this.dragMouseY = my;
       }
-    });
+    };
 
-    // --- mousemove ---
-    this.canvas.addEventListener('mousemove', (e) => {
-      const rect = this.canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
+    const handlePointerMove = (clientX, clientY) => {
+      const { x: mx, y: my } = getCanvasPos(clientX, clientY);
       this.mouseX = mx;
       this.mouseY = my;
 
@@ -1651,7 +1631,6 @@ class App {
         this.dragMouseY = my;
         this._didDrag = true;
 
-        // Detectar si estamos sobre otra criatura (para feedback visual)
         for (const c of this.creatures) {
           if (c === this.selectedCreature) continue;
           c.isTargeted = c.containsPoint(mx, my);
@@ -1659,32 +1638,25 @@ class App {
 
         this.canvas.style.cursor = 'crosshair';
       } else {
-        // Hover normal
         this.canvas.style.cursor = 'default';
         const underCursor = this._findCreatureAt(mx, my);
         if (underCursor) {
           this.canvas.style.cursor = 'pointer';
         }
       }
-    });
+    };
 
-    // --- mouseup ---
-    this.canvas.addEventListener('mouseup', (e) => {
+    const handlePointerUp = (clientX, clientY) => {
       if (this.selectedCreature) {
-        const rect = this.canvas.getBoundingClientRect();
-        const mx = e.clientX - rect.left;
-        const my = e.clientY - rect.top;
+        const { x: mx, y: my } = getCanvasPos(clientX, clientY);
 
-        // Verificar si soltamos sobre otra criatura
         const targetCreature = this._findCreatureAt(mx, my);
         if (targetCreature && targetCreature !== this.selectedCreature) {
           this._createConnection(this.selectedCreature, targetCreature);
         } else if (this._didDrag) {
-          // Arrastró al vacío → eliminar todas sus conexiones
           this._removeConnectionsForCreature(this.selectedCreature);
         }
 
-        // Limpiar estado de selección
         this.selectedCreature.isSelected = false;
         this.selectedCreature = null;
         this.isDraggingFromSelected = false;
@@ -1692,15 +1664,13 @@ class App {
         this.dragMouseX = undefined;
         this.dragMouseY = undefined;
 
-        // Limpiar targeted de todas las criaturas
         for (const c of this.creatures) {
           c.isTargeted = false;
         }
       }
-    });
+    };
 
-    // --- mouseleave ---
-    this.canvas.addEventListener('mouseleave', () => {
+    const handlePointerCancel = () => {
       if (this.selectedCreature) {
         this.selectedCreature.isSelected = false;
         this.selectedCreature = null;
@@ -1715,12 +1685,46 @@ class App {
       }
       this.mouseX = undefined;
       this.mouseY = undefined;
-    });
+    };
 
-    // --- Resize ---
+    // --- Mouse events ---
+    this.canvas.addEventListener('mousedown', (e) => handlePointerDown(e.clientX, e.clientY));
+    this.canvas.addEventListener('mousemove', (e) => handlePointerMove(e.clientX, e.clientY));
+    this.canvas.addEventListener('mouseup', (e) => handlePointerUp(e.clientX, e.clientY));
+    this.canvas.addEventListener('mouseleave', () => handlePointerCancel());
+
+    // --- Touch events (mobile) ---
+    this.canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      handlePointerDown(touch.clientX, touch.clientY);
+    }, { passive: false });
+
+    this.canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      handlePointerMove(touch.clientX, touch.clientY);
+    }, { passive: false });
+
+    this.canvas.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      const touch = e.changedTouches[0];
+      handlePointerUp(touch.clientX, touch.clientY);
+    }, { passive: false });
+
+    this.canvas.addEventListener('touchcancel', (e) => {
+      e.preventDefault();
+      handlePointerCancel();
+    }, { passive: false });
+
+    // --- Resize (con debounce para móvil) ---
+    let resizeTimer;
     window.addEventListener('resize', () => {
-      this._resize();
-      this._initParticles();
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        this._resize();
+        this._initParticles();
+      }, 100);
     });
 
     // --- Info button ---
@@ -2007,8 +2011,9 @@ class App {
 
     const dpr = window.devicePixelRatio || 1;
 
-    // Reconstruir fondo cachead cada 8 frames (los cambios son muy sutiles)
-    if (this._bgCacheDirty || this._bgFrameCount % 8 === 0) {
+    // Reconstruir fondo cachead (menos frecuente en móvil)
+    const cacheInterval = this._isMobileDevice() ? 20 : 12;
+    if (this._bgCacheDirty || this._bgFrameCount % cacheInterval === 0) {
       this._bgCacheDirty = false;
 
       const ctx = this._bgCacheCtx;
@@ -2039,19 +2044,21 @@ class App {
 
       ctx.save();
 
-      // --- 2. Psychedelic hexagonal tessellation ---
+      // --- 2. Psychedelic hexagonal tessellation (simplificado para rendimiento) ---
+      const isMobile = this._isMobileDevice();
       const cellSize = 85 + Math.sin(t * 0.06) * 12;
       const ox = (Math.sin(t * 0.02) * 0.5 + 0.5) * cellSize;
       const oy = (Math.cos(t * 0.025) * 0.5 + 0.5) * cellSize;
-      const cols = Math.ceil(w / cellSize) + 2;
-      const rows = Math.ceil(h / cellSize) + 2;
+      const step = isMobile ? 2 : 1; // Dibujar menos celdas en móvil
+      const cols = Math.ceil(w / (cellSize * step)) + 2;
+      const rows = Math.ceil(h / (cellSize * step)) + 2;
 
       ctx.lineCap = 'round';
 
       for (let r = -1; r < rows; r++) {
         for (let c = -1; c < cols; c++) {
-          const cx = c * cellSize + ox;
-          const cy = r * cellSize + oy;
+          const cx = (c * cellSize * step) + ox;
+          const cy = (r * cellSize * step) + oy;
           const phase = (c * 3.7 + r * 5.3) + t * 0.35;
           const hue = 275 + Math.sin(phase * 0.25) * 25;
           const alpha = 0.04 + Math.sin(phase * 0.4) * 0.025;
@@ -2066,34 +2073,35 @@ class App {
           ctx.strokeStyle = `oklch(${0.28 + hexPulse * 0.15} ${0.055 + hexPulse * 0.03} ${hue})`;
           ctx.lineWidth = 0.8 + hexPulse * 1.2;
 
+          // Hexágono exterior
           ctx.beginPath();
           for (let i = 0; i < 6; i++) {
             const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
-            const px = Math.cos(a) * size;
-            const py = Math.sin(a) * size;
-            i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+            i === 0 ? ctx.moveTo(Math.cos(a) * size, Math.sin(a) * size) : ctx.lineTo(Math.cos(a) * size, Math.sin(a) * size);
           }
           ctx.closePath();
           ctx.stroke();
 
-          ctx.rotate(Math.PI);
-          ctx.globalAlpha *= 0.5;
-          ctx.beginPath();
-          for (let i = 0; i < 3; i++) {
-            const a = (i / 3) * Math.PI * 2 - Math.PI / 2;
-            const px = Math.cos(a) * size * 0.45;
-            const py = Math.sin(a) * size * 0.45;
-            i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+          if (!isMobile) {
+            // Triángulo interior (solo en desktop)
+            ctx.rotate(Math.PI);
+            ctx.globalAlpha *= 0.5;
+            ctx.beginPath();
+            for (let i = 0; i < 3; i++) {
+              const a = (i / 3) * Math.PI * 2 - Math.PI / 2;
+              i === 0 ? ctx.moveTo(Math.cos(a) * size * 0.45, Math.sin(a) * size * 0.45) : ctx.lineTo(Math.cos(a) * size * 0.45, Math.sin(a) * size * 0.45);
+            }
+            ctx.closePath();
+            ctx.stroke();
           }
-          ctx.closePath();
-          ctx.stroke();
 
           ctx.restore();
         }
       }
 
       // --- 3. Drifting concentric rings ---
-      for (let i = 0; i < 4; i++) {
+      const numRings = isMobile ? 2 : 4;
+      for (let i = 0; i < numRings; i++) {
         const ringRadius = 50 + i * 55 + Math.sin(t * 0.12 + i * 1.3) * 15;
         const rx = w * 0.5 + Math.sin(t * 0.03 + i * 1.4) * w * 0.22;
         const ry = h * 0.5 + Math.cos(t * 0.028 + i * 1.1) * h * 0.18;
@@ -2107,8 +2115,8 @@ class App {
         ctx.restore();
       }
 
-      // --- 4. Subtle rotating radial lines ---
-      const numLines = 16;
+      // --- 4. Subtle rotating radial lines (menos en móvil) ---
+      const numLines = isMobile ? 8 : 16;
       const lineBaseRot = t * 0.02;
       ctx.save();
       ctx.globalAlpha = 0.015;
@@ -2288,7 +2296,7 @@ class App {
     ctx.strokeStyle = 'rgba(192, 132, 252, 0.6)';
     ctx.lineWidth = 4 * intensity;
     ctx.shadowColor = 'rgba(192, 132, 252, 0.5)';
-    ctx.shadowBlur = 20 * intensity;
+    ctx.shadowBlur = 10 * intensity;
     ctx.beginPath();
     ctx.arc(w * 0.5, h * 0.5, ringRadius, 0, Math.PI * 2);
     ctx.stroke();
